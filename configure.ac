@@ -1399,6 +1399,7 @@ AM_CONDITIONAL(ENABLE_SPLIT_USR, [test "x${enable_split_usr}" = "xyes"])
 
 AC_DEFINE_UNQUOTED(DEFAULT_PATH, ["$DEFAULT_PATH"], [The $PATH])
 AC_DEFINE_UNQUOTED(DEFAULT_PATH_SPLIT_USR, ["$DEFAULT_PATH_SPLIT_USR"], [The old school $PATH])
+AC_SUBST(DEFAULT_PATH)
 
 AC_ARG_WITH([dkr-index-url],
         [AS_HELP_STRING([--dkr-index-url=URL], [Specify the default index URL to use for image downloads])],
