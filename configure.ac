@@ -1381,6 +1381,8 @@ AC_ARG_WITH([pamconfdir],
         [with_pamconfdir=${sysconfdir}/pam.d])
 AX_NORMALIZE_PATH([with_pamconfdir])
 
+DEFAULT_PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin"
+DEFAULT_PATH_SPLIT_USR="${DEFAULT_PATH}:/sbin:/bin"
 AC_ARG_ENABLE([split-usr],
         AS_HELP_STRING([--enable-split-usr], [Assume that /bin, /sbin aren\'t symlinks into /usr]),
         [],
@@ -1389,6 +1391,14 @@ AC_ARG_ENABLE([split-usr],
         ], [
                 enable_split_usr=no
         ])])
+AS_IF([test "x${enable_split_usr}" = "xyes"], [
+        DEFAULT_PATH="${DEFAULT_PATH_SPLIT_USR}"
+        AC_DEFINE(HAVE_SPLIT_USR, 1, [Define if /bin, /sbin aren't symlinks into /usr])
+])
+AM_CONDITIONAL(ENABLE_SPLIT_USR, [test "x${enable_split_usr}" = "xyes"])
+
+AC_DEFINE_UNQUOTED(DEFAULT_PATH, ["$DEFAULT_PATH"], [The $PATH])
+AC_DEFINE_UNQUOTED(DEFAULT_PATH_SPLIT_USR, ["$DEFAULT_PATH_SPLIT_USR"], [The old school $PATH])
 
 AC_ARG_WITH([dkr-index-url],
         [AS_HELP_STRING([--dkr-index-url=URL], [Specify the default index URL to use for image downloads])],
@@ -1397,11 +1407,6 @@ AC_ARG_WITH([dkr-index-url],
 
 AC_DEFINE_UNQUOTED(DEFAULT_DKR_INDEX_URL, [$DEFAULT_DKR_INDEX_URL], [Default index URL to use for image downloads])
 AC_SUBST(DEFAULT_DKR_INDEX_URL)
-
-AS_IF([test "x${enable_split_usr}" = "xyes"], [
-        AC_DEFINE(HAVE_SPLIT_USR, 1, [Define if /bin, /sbin aren't symlinks into /usr])
-])
-AM_CONDITIONAL(ENABLE_SPLIT_USR, [test "x${enable_split_usr}" = "xyes"])
 
 # work around intltool-update issues during 'make distcheck'
 AS_IF([test "x$0" != "x./configure"], [
