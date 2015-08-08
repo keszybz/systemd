@@ -5825,6 +5825,14 @@ XSLTPROC_FLAGS = \
 	--stringparam systemd.version $(VERSION) \
 	--path '$(builddir)/man:$(srcdir)/man'
 
+if ENABLE_SPLIT_USR
+XSLTPROC_FLAGS += \
+	--stringparam profile.vendor splitusr
+else
+XSLTPROC_FLAGS += \
+	--stringparam profile.vendor normal
+endif
+
 XSLTPROC_PROCESS_MAN = \
 	$(AM_V_XSLT)$(XSLTPROC) -o $@ $(XSLTPROC_FLAGS) $(srcdir)/man/custom-man.xsl $<
 

@@ -21,7 +21,7 @@
 
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0">
 
-<xsl:import href="http://docbook.sourceforge.net/release/xsl/current/html/docbook.xsl"/>
+<xsl:import href="http://docbook.sourceforge.net/release/xsl/current/html/profile-docbook.xsl"/>
 <!--
   - The docbook stylesheet injects empty anchor tags into generated HTML, identified by an auto-generated ID.
   - Ask the docbook stylesheet to generate reproducible output when generating (these) ID values.

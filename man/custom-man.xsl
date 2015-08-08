@@ -24,7 +24,7 @@
                 extension-element-prefixes="exsl"
                 version="1.0">
 
-<xsl:import href="http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl"/>
+<xsl:import href="http://docbook.sourceforge.net/release/xsl/current/manpages/profile-docbook.xsl"/>
 
 <xsl:template name="top.comment" />
 

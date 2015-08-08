@@ -78,6 +78,7 @@
 <filename>$XDG_DATA_HOME/systemd/user/*</filename>
 <filename>$HOME/.local/share/systemd/user/*</filename>
 <filename>&rootlibexecdir;/user/*</filename>
+<filename vendor="splitusr">/usr/lib/systemd/user/*</filename>
 <filename>...</filename>
     </literallayout></para>
   </refsynopsisdiv>
@@ -295,7 +296,9 @@
       <entry>Runtime units</entry>
           </row>
           <row>
-      <entry><filename>&rootlibexecdir;/system</filename></entry>
+      <entry><filename>&rootlibexecdir;/system</filename>
+<filename vendor="splitusr">/usr/lib/systemd/user/*</filename>
+      </entry>
       <entry>Units of installed packages</entry>
           </row>
         </tbody>
