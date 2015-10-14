@@ -6792,3 +6792,21 @@ bool fdname_is_valid(const char *s) {
 
         return p - s < 256;
 }
+
+void string_erase(char *x) {
+
+        if (!x)
+                return;
+
+        /* A delicious drop of snake-oil! To be called on memory where
+         * we stored passphrases or so, after we used them. */
+
+        memory_erase(x, strlen(x));
+}
+
+void strv_erase(char **l) {
+        char **i;
+
+        STRV_FOREACH(i, l)
+                string_erase(*i);
+}

@@ -939,3 +939,7 @@ void nop_signal_handler(int sig);
 int version(void);
 
 bool fdname_is_valid(const char *s);
+
+#define memory_erase(p, l) memset((p), 'x', (l))
+void string_erase(char *x);
+void strv_erase(char **l);
