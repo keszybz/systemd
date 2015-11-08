@@ -21,5 +21,7 @@ WatchdogSec=3min
 # access them all and combine
 LimitNOFILE=16384
 
+Restart=on-failure
+
 [Install]
 WantedBy=multi-user.target
