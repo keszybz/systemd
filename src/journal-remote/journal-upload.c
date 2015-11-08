@@ -279,9 +279,7 @@ int start_upload(Uploader *u,
         } else {
                 /* truncate the potential old error message */
                 u->error[0] = '\0';
-
-                free(u->answer);
-                u->answer = 0;
+                u->answer = mfree(u->answer);
         }
 
         /* upload to this place */
