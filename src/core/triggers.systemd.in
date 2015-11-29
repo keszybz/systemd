@@ -27,6 +27,8 @@
 
 pid = posix.fork()
 if pid == 0 then
+    posix.close(2)
+    posix.open("/dev/null")
     assert(posix.exec("%{_bindir}/systemctl", "daemon-reload"))
 elseif pid > 0 then
     posix.wait(pid)
@@ -57,6 +59,8 @@ if posix.access("%{_localstatedir}/lib/rpm-state/systemd/needs-reload") then
     posix.rmdir("%{_localstatedir}/lib/rpm-state/systemd")
     pid = posix.fork()
     if pid == 0 then
+        posix.close(2)
+        posix.open("/dev/null")
         assert(posix.exec("%{_bindir}/systemctl", "daemon-reload"))
     elseif pid > 0 then
         posix.wait(pid)
