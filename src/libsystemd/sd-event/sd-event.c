@@ -1225,15 +1225,13 @@ _public_ int sd_event_add_child(
                 return r;
         }
 
-        e->n_enabled_child_sources ++;
-
         r = event_make_signal_data(e, SIGCHLD, NULL);
         if (r < 0) {
-                e->n_enabled_child_sources--;
                 source_free(s);
                 return r;
         }
 
+        e->n_enabled_child_sources ++;
         e->need_process_child = true;
 
         if (ret)
