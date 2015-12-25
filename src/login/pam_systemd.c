@@ -408,13 +408,18 @@ _public_ PAM_EXTERN int pam_sm_open_session(
                                remote_host,
                                0);
         if (r < 0) {
-                if (sd_bus_error_has_name(&error, BUS_ERROR_SESSION_BUSY)) {
-                        pam_syslog(handle, LOG_DEBUG, "Cannot create session: %s", bus_error_message(&error, r));
+                bool busy = sd_bus_error_has_name(&error, BUS_ERROR_SESSION_BUSY);
+
+                pam_syslog(handle,
+                           busy ? LOG_DEBUG : LOG_ERR,
+                           "%s for user %s: %s",
+                           busy ? "Cannot create session" : "Failed to create session",
+                           username,
+                           bus_error_message(&error, r));
+                if (busy)
                         return PAM_SUCCESS;
-                } else {
-                        pam_syslog(handle, LOG_ERR, "Failed to create session: %s", bus_error_message(&error, r));
+                else
                         return PAM_SYSTEM_ERR;
-                }
         }
 
         r = sd_bus_message_read(reply,
@@ -511,7 +516,7 @@ _public_ PAM_EXTERN int pam_sm_close_session(
 
         _cleanup_(sd_bus_error_free) sd_bus_error error = SD_BUS_ERROR_NULL;
         _cleanup_(sd_bus_flush_close_unrefp) sd_bus *bus = NULL;
-        const void *existing = NULL;
+        const void *existing = NULL, *username = "(unknown)";
         const char *id;
         int r;
 
@@ -520,6 +525,9 @@ _public_ PAM_EXTERN int pam_sm_close_session(
         /* Only release session if it wasn't pre-existing when we
          * tried to create it */
         pam_get_data(handle, "systemd.existing", &existing);
+
+        /* Try to get username, ignore failure */
+        pam_get_item(handle, PAM_USER, &username);
 
         id = pam_getenv(handle, "XDG_SESSION_ID");
         if (id && !existing) {
@@ -531,7 +539,9 @@ _public_ PAM_EXTERN int pam_sm_close_session(
 
                 r = sd_bus_open_system(&bus);
                 if (r < 0) {
-                        pam_syslog(handle, LOG_ERR, "Failed to connect to system bus: %s", strerror(-r));
+                        pam_syslog(handle, LOG_ERR, "Failed to connect to system bus to release session %s of user %s: %s",
+                                   id, (const char*) username,
+                                   strerror(-r));
                         return PAM_SESSION_ERR;
                 }
 
@@ -545,7 +555,9 @@ _public_ PAM_EXTERN int pam_sm_close_session(
                                        "s",
                                        id);
                 if (r < 0) {
-                        pam_syslog(handle, LOG_ERR, "Failed to release session: %s", bus_error_message(&error, r));
+                        pam_syslog(handle, LOG_ERR, "Failed to release session %s of user %s: %s",
+                                   id, (const char*) username,
+                                   bus_error_message(&error, r));
                         return PAM_SESSION_ERR;
                 }
         }
