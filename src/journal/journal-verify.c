@@ -253,7 +253,7 @@ static int journal_file_object_verify(JournalFile *f, uint64_t offset, Object *o
                         if (o->entry.items[i].object_offset == 0 ||
                             !VALID64(o->entry.items[i].object_offset)) {
                                 error(offset,
-                                      "Invalid entry item (%"PRIu64"/%"PRIu64" offset: "OFSfmt,
+                                      "Entry item %"PRIu64"/%"PRIu64" has invalid offset "OFSfmt".",
                                       i, journal_file_entry_n_items(o),
                                       o->entry.items[i].object_offset);
                                 return -EBADMSG;
