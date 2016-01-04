@@ -49,9 +49,7 @@ class sd_dump_hashmaps(gdb.Command):
                 n_entries = h["n_direct_entries"]
                 n_buckets = all_direct_buckets[int(h["type"])];
 
-            t = ["plain", "ordered", "set"][int(h["type"])]
-
-            print("%s, %s, %s, %d, %d, %d, %s (%s:%d)" % (t, h["hash_ops"], bool(h["has_indirect"]), n_entries, d["max_entries"], n_buckets, d["func"], d["file"], d["line"]))
+            print("%s, %s, %s, %d, %d, %d, %s (%s:%d)" % (h["type"], h["hash_ops"], bool(h["has_indirect"]), n_entries, d["max_entries"], n_buckets, d["func"], d["file"], d["line"]))
 
             if arg != "" and n_entries > 0:
                 dib_raw_addr = storage_ptr + (all_entry_sizes[h["type"]] * n_buckets)
