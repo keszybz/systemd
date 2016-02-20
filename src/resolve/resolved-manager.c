@@ -961,15 +961,14 @@ void manager_refresh_rrs(Manager *m) {
 
 int manager_next_hostname(Manager *m) {
         const char *p;
-        uint64_t u, a;
+        uint64_t u;
+        uint8_t a;
         char *h, *k;
         int r;
 
         assert(m);
 
-        p = strchr(m->llmnr_hostname, 0);
-        assert(p);
-
+        p = m->llmnr_hostname + strlen(m->llmnr_hostname);
         while (p > m->llmnr_hostname) {
                 if (!strchr("0123456789", p[-1]))
                         break;
