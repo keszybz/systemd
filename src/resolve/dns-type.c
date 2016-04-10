@@ -219,8 +219,8 @@ bool dns_type_needs_authentication(uint16_t type) {
                       DNS_TYPE_CAA);
 }
 
-int dns_type_to_af(uint16_t t) {
-        switch (t) {
+int dns_type_to_af(uint16_t type) {
+        switch (type) {
 
         case DNS_TYPE_A:
                 return AF_INET;
