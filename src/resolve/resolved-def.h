@@ -36,3 +36,35 @@
 #define SD_RESOLVED_MDNS          (SD_RESOLVED_MDNS_IPV4|SD_RESOLVED_MDNS_IPV6)
 
 #define SD_RESOLVED_PROTOCOLS_ALL (SD_RESOLVED_MDNS|SD_RESOLVED_LLMNR|SD_RESOLVED_DNS)
+
+typedef enum {
+        /* These five are returned by dnssec_verify_rrset() */
+        DNSSEC_VALIDATED,
+        DNSSEC_VALIDATED_WILDCARD, /* Validated via a wildcard RRSIG, further NSEC/NSEC3 checks necessary */
+        DNSSEC_INVALID,
+        DNSSEC_SIGNATURE_EXPIRED,
+        DNSSEC_UNSUPPORTED_ALGORITHM,
+
+        /* These two are added by dnssec_verify_rrset_search() */
+        DNSSEC_NO_SIGNATURE,
+        DNSSEC_MISSING_KEY,
+
+        /* These two are added by the DnsTransaction logic */
+        DNSSEC_UNSIGNED,
+        DNSSEC_FAILED_AUXILIARY,
+        DNSSEC_NSEC_MISMATCH,
+        DNSSEC_INCOMPATIBLE_SERVER,
+
+        _DNSSEC_RESULT_MAX,
+        _DNSSEC_RESULT_INVALID = -1
+} DnssecResult;
+
+typedef enum {
+        DNSSEC_SECURE,
+        DNSSEC_INSECURE,
+        DNSSEC_BOGUS,
+        DNSSEC_INDETERMINATE,
+
+        _DNSSEC_VERDICT_MAX,
+        _DNSSEC_VERDICT_INVALID = -1
+} DnssecVerdict;
