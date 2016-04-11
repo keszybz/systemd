@@ -57,10 +57,12 @@ struct DnsQuery {
         unsigned n_auxiliary_queries;
         int auxiliary_result;
 
-        /* The question, formatted in IDNA for use on classic DNS, and as UTF8 for use in LLMNR or mDNS. Note that even
-         * on classic DNS some labels might use UTF8 encoding. Specifically, DNS-SD service names (in contrast to their
-         * domain suffixes) use UTF-8 encoding even on DNS. Thus, the difference between these two fields is mostly
-         * relevant only for explicit *hostname* lookups as well as the domain suffixes of service lookups. */
+        /* The question, formatted in IDNA for use on classic DNS, and as UTF8 for
+         * use in LLMNR or mDNS. Note that even on classic DNS some labels might
+         * use UTF8 encoding. Specifically, DNS-SD service names (in contrast to
+         * their domain suffixes) use UTF-8 encoding even on DNS. Thus, the
+         * difference between these two fields is mostly relevant only for explicit
+         * *hostname* lookups as well as the domain suffixes of service lookups. */
         DnsQuestion *question_idna;
         DnsQuestion *question_utf8;
 
@@ -110,6 +112,38 @@ enum {
         DNS_QUERY_NOMATCH,
         DNS_QUERY_RESTARTED,
 };
+
+assert_cc((SD_RESOLVED_DNSSEC_DEFAULT |
+           SD_RESOLVED_DNSSEC_NO |
+           SD_RESOLVED_DNSSEC_YES |
+           SD_RESOLVED_DNSSEC_ALLOW_DOWNGRADE)
+          == SD_RESOLVED_DNSSEC_OPTIONS);
+
+static inline DnssecMode dns_query_flags_to_dnssec_mode(uint64_t flags, DnssecMode fallback) {
+        switch (flags & SD_RESOLVED_DNSSEC_OPTIONS) {
+        case SD_RESOLVED_DNSSEC_YES:
+                return DNSSEC_YES;
+        case SD_RESOLVED_DNSSEC_ALLOW_DOWNGRADE:
+                return DNSSEC_ALLOW_DOWNGRADE;
+        case SD_RESOLVED_DNSSEC_NO:
+                return DNSSEC_NO;
+        default:
+                return fallback;
+        }
+}
+
+static inline unsigned dns_query_dnssec_mode_to_flags(DnssecMode mode) {
+        switch(mode) {
+        case DNSSEC_NO:
+                return SD_RESOLVED_DNSSEC_NO;
+        case DNSSEC_ALLOW_DOWNGRADE:
+                return SD_RESOLVED_DNSSEC_ALLOW_DOWNGRADE;
+        case DNSSEC_YES:
+                return SD_RESOLVED_DNSSEC_YES;
+        default:
+                return SD_RESOLVED_DNSSEC_DEFAULT; /* use server defaults */
+        }
+}
 
 DnsQueryCandidate* dns_query_candidate_free(DnsQueryCandidate *c);
 void dns_query_candidate_notify(DnsQueryCandidate *c);

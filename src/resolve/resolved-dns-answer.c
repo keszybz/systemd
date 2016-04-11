@@ -72,19 +72,22 @@ DnsAnswer *dns_answer_unref(DnsAnswer *a) {
         return NULL;
 }
 
-static int dns_answer_add_raw(DnsAnswer *a, DnsResourceRecord *rr, int ifindex, DnsAnswerFlags flags) {
+static int dns_answer_add_raw(
+                DnsAnswer *a,
+                DnsResourceRecord *rr,
+                int ifindex,
+                DnsAnswerFlags flags,
+                DnssecResult dnssec_result) {
         assert(rr);
 
-        if (!a)
-                return -ENOSPC;
-
-        if (a->n_rrs >= a->n_allocated)
+        if (!a || a->n_rrs >= a->n_allocated)
                 return -ENOSPC;
 
         a->items[a->n_rrs++] = (DnsAnswerItem) {
                 .rr = dns_resource_record_ref(rr),
                 .ifindex = ifindex,
                 .flags = flags,
+                .dnssec_result = dnssec_result,
         };
 
         return 1;
@@ -93,10 +96,11 @@ static int dns_answer_add_raw(DnsAnswer *a, DnsResourceRecord *rr, int ifindex, 
 static int dns_answer_add_raw_all(DnsAnswer *a, DnsAnswer *source) {
         DnsResourceRecord *rr;
         DnsAnswerFlags flags;
+        DnssecResult dnssec_result;
         int ifindex, r;
 
-        DNS_ANSWER_FOREACH_FULL(rr, ifindex, flags, source) {
-                r = dns_answer_add_raw(a, rr, ifindex, flags);
+        DNS_ANSWER_FOREACH_FULL(rr, ifindex, flags, dnssec_result, source) {
+                r = dns_answer_add_raw(a, rr, ifindex, flags, dnssec_result);
                 if (r < 0)
                         return r;
         }
@@ -104,7 +108,13 @@ static int dns_answer_add_raw_all(DnsAnswer *a, DnsAnswer *source) {
         return 0;
 }
 
-int dns_answer_add(DnsAnswer *a, DnsResourceRecord *rr, int ifindex, DnsAnswerFlags flags) {
+int dns_answer_add(
+                DnsAnswer *a,
+                DnsResourceRecord *rr,
+                int ifindex,
+                DnsAnswerFlags flags,
+                DnssecResult dnssec_result) {
+
         unsigned i;
         int r;
 
@@ -127,8 +137,9 @@ int dns_answer_add(DnsAnswer *a, DnsResourceRecord *rr, int ifindex, DnsAnswerFl
                         if ((rr->ttl == 0) != (a->items[i].rr->ttl == 0))
                                 return -EINVAL;
 
-                        /* Entry already exists, keep the entry with
-                         * the higher RR. */
+                        // FIXME: dnssec_result
+
+                        /* Entry already exists, keep the entry with the higher TTL. */
                         if (rr->ttl > a->items[i].rr->ttl) {
                                 dns_resource_record_ref(rr);
                                 dns_resource_record_unref(a->items[i].rr);
@@ -155,16 +166,17 @@ int dns_answer_add(DnsAnswer *a, DnsResourceRecord *rr, int ifindex, DnsAnswerFl
                 }
         }
 
-        return dns_answer_add_raw(a, rr, ifindex, flags);
+        return dns_answer_add_raw(a, rr, ifindex, flags, dnssec_result);
 }
 
 static int dns_answer_add_all(DnsAnswer *a, DnsAnswer *b) {
         DnsResourceRecord *rr;
         DnsAnswerFlags flags;
+        DnssecResult dnssec_result;
         int ifindex, r;
 
-        DNS_ANSWER_FOREACH_FULL(rr, ifindex, flags, b) {
-                r = dns_answer_add(a, rr, ifindex, flags);
+        DNS_ANSWER_FOREACH_FULL(rr, ifindex, flags, dnssec_result, b) {
+                r = dns_answer_add(a, rr, ifindex, flags, dnssec_result);
                 if (r < 0)
                         return r;
         }
@@ -172,7 +184,13 @@ static int dns_answer_add_all(DnsAnswer *a, DnsAnswer *b) {
         return 0;
 }
 
-int dns_answer_add_extend(DnsAnswer **a, DnsResourceRecord *rr, int ifindex, DnsAnswerFlags flags) {
+int dns_answer_add_extend(
+                DnsAnswer **a,
+                DnsResourceRecord *rr,
+                int ifindex,
+                DnsAnswerFlags flags,
+                DnssecResult dnssec_result) {
+
         int r;
 
         assert(a);
@@ -182,7 +200,7 @@ int dns_answer_add_extend(DnsAnswer **a, DnsResourceRecord *rr, int ifindex, Dns
         if (r < 0)
                 return r;
 
-        return dns_answer_add(*a, rr, ifindex, flags);
+        return dns_answer_add(*a, rr, ifindex, flags, dnssec_result);
 }
 
 int dns_answer_add_soa(DnsAnswer *a, const char *name, uint32_t ttl) {
@@ -208,7 +226,7 @@ int dns_answer_add_soa(DnsAnswer *a, const char *name, uint32_t ttl) {
         soa->soa.expire = 1;
         soa->soa.minimum = ttl;
 
-        return dns_answer_add(a, soa, 0, DNS_ANSWER_AUTHENTICATED);
+        return dns_answer_add(a, soa, 0, DNS_ANSWER_AUTHENTICATED, DNSSEC_UNSIGNED);
 }
 
 int dns_answer_match_key(DnsAnswer *a, const DnsResourceKey *key, DnsAnswerFlags *ret_flags) {
@@ -345,9 +363,16 @@ int dns_answer_contains_zone_nsec3(DnsAnswer *answer, const char *zone) {
         return false;
 }
 
-int dns_answer_find_soa(DnsAnswer *a, const DnsResourceKey *key, DnsResourceRecord **ret, DnsAnswerFlags *flags) {
+int dns_answer_find_soa(
+                DnsAnswer *a,
+                const DnsResourceKey *key,
+                DnsResourceRecord **ret,
+                DnsAnswerFlags *flags,
+                DnssecResult *dnssec_result) {
+
         DnsResourceRecord *rr, *soa = NULL;
-        DnsAnswerFlags rr_flags, soa_flags = 0;
+        DnsAnswerFlags rr_flags, soa_flags;
+        DnssecResult rr_dr, soa_dr;
         int r;
 
         assert(key);
@@ -356,7 +381,7 @@ int dns_answer_find_soa(DnsAnswer *a, const DnsResourceKey *key, DnsResourceReco
         if (key->type == DNS_TYPE_SOA)
                 return 0;
 
-        DNS_ANSWER_FOREACH_FLAGS(rr, rr_flags, a) {
+        DNS_ANSWER_FOREACH_FLAGS_RESULT(rr, rr_flags, rr_dr, a) {
                 r = dns_resource_key_match_soa(key, rr->key);
                 if (r < 0)
                         return r;
@@ -372,6 +397,7 @@ int dns_answer_find_soa(DnsAnswer *a, const DnsResourceKey *key, DnsResourceReco
 
                         soa = rr;
                         soa_flags = rr_flags;
+                        soa_dr = rr_dr;
                 }
         }
 
@@ -382,6 +408,8 @@ int dns_answer_find_soa(DnsAnswer *a, const DnsResourceKey *key, DnsResourceReco
                 *ret = soa;
         if (flags)
                 *flags = soa_flags;
+        if (dnssec_result)
+                *dnssec_result = soa_dr;
 
         return 1;
 }
@@ -498,20 +526,21 @@ int dns_answer_remove_by_key(DnsAnswer **a, const DnsResourceKey *key) {
         if ((*a)->n_ref > 1) {
                 _cleanup_(dns_answer_unrefp) DnsAnswer *copy = NULL;
                 DnsAnswerFlags flags;
+                DnssecResult dnssec_result;
                 int ifindex;
 
                 copy = dns_answer_new((*a)->n_rrs);
                 if (!copy)
                         return -ENOMEM;
 
-                DNS_ANSWER_FOREACH_FULL(rr, ifindex, flags, *a) {
+                DNS_ANSWER_FOREACH_FULL(rr, ifindex, flags, dnssec_result, *a) {
                         r = dns_resource_key_equal(rr->key, key);
                         if (r < 0)
                                 return r;
                         if (r > 0)
                                 continue;
 
-                        r = dns_answer_add_raw(copy, rr, ifindex, flags);
+                        r = dns_answer_add_raw(copy, rr, ifindex, flags, dnssec_result);
                         if (r < 0)
                                 return r;
                 }
@@ -584,20 +613,21 @@ int dns_answer_remove_by_rr(DnsAnswer **a, DnsResourceRecord *rm) {
         if ((*a)->n_ref > 1) {
                 _cleanup_(dns_answer_unrefp) DnsAnswer *copy = NULL;
                 DnsAnswerFlags flags;
+                DnssecResult dnssec_result;
                 int ifindex;
 
                 copy = dns_answer_new((*a)->n_rrs);
                 if (!copy)
                         return -ENOMEM;
 
-                DNS_ANSWER_FOREACH_FULL(rr, ifindex, flags, *a) {
+                DNS_ANSWER_FOREACH_FULL(rr, ifindex, flags, dnssec_result, *a) {
                         r = dns_resource_record_equal(rr, rm);
                         if (r < 0)
                                 return r;
                         if (r > 0)
                                 continue;
 
-                        r = dns_answer_add_raw(copy, rr, ifindex, flags);
+                        r = dns_answer_add_raw(copy, rr, ifindex, flags, dnssec_result);
                         if (r < 0)
                                 return r;
                 }
@@ -635,17 +665,23 @@ int dns_answer_remove_by_rr(DnsAnswer **a, DnsResourceRecord *rm) {
         return 1;
 }
 
-int dns_answer_copy_by_key(DnsAnswer **a, DnsAnswer *source, const DnsResourceKey *key, DnsAnswerFlags or_flags) {
+int dns_answer_copy_by_key(
+                DnsAnswer **a,
+                DnsAnswer *source, // const?
+                const DnsResourceKey *key,
+                DnsAnswerFlags or_flags) {
+
         DnsResourceRecord *rr_source;
         int ifindex_source, r;
         DnsAnswerFlags flags_source;
+        DnssecResult dnssec_result_source;
 
         assert(a);
         assert(key);
 
         /* Copy all RRs matching the specified key from source into *a */
 
-        DNS_ANSWER_FOREACH_FULL(rr_source, ifindex_source, flags_source, source) {
+        DNS_ANSWER_FOREACH_FULL(rr_source, ifindex_source, flags_source, dnssec_result_source, source) {
 
                 r = dns_resource_key_equal(rr_source->key, key);
                 if (r < 0)
@@ -658,7 +694,7 @@ int dns_answer_copy_by_key(DnsAnswer **a, DnsAnswer *source, const DnsResourceKe
                 if (r < 0)
                         return r;
 
-                r = dns_answer_add(*a, rr_source, ifindex_source, flags_source|or_flags);
+                r = dns_answer_add(*a, rr_source, ifindex_source, flags_source|or_flags, dnssec_result_source);
                 if (r < 0)
                         return r;
         }
@@ -786,12 +822,13 @@ int dns_answer_reserve_or_clone(DnsAnswer **a, unsigned n_free) {
 void dns_answer_dump(DnsAnswer *answer, FILE *f) {
         DnsResourceRecord *rr;
         DnsAnswerFlags flags;
+        DnssecResult dnssec_result;
         int ifindex;
 
         if (!f)
                 f = stdout;
 
-        DNS_ANSWER_FOREACH_FULL(rr, ifindex, flags, answer) {
+        DNS_ANSWER_FOREACH_FULL(rr, ifindex, flags, dnssec_result, answer) {
                 const char *t;
 
                 fputc('\t', f);
@@ -815,6 +852,8 @@ void dns_answer_dump(DnsAnswer *answer, FILE *f) {
                         fputs(" cachable", f);
                 if (flags & DNS_ANSWER_SHARED_OWNER)
                         fputs(" shared-owner", f);
+                if (dnssec_result != _DNSSEC_RESULT_INVALID)
+                        fputs(dnssec_result_to_string(dnssec_result), f);
 
                 fputc('\n', f);
         }

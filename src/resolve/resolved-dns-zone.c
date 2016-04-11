@@ -162,6 +162,7 @@ static int dns_zone_link_item(DnsZone *z, DnsZoneItem *i) {
 
 static int dns_zone_item_probe_start(DnsZoneItem *i)  {
         DnsTransaction *t;
+        DnsResourceKey const_key;
         int r;
 
         assert(i);
@@ -169,7 +170,8 @@ static int dns_zone_item_probe_start(DnsZoneItem *i)  {
         if (i->probe_transaction)
                 return 0;
 
-        t = dns_scope_find_transaction(i->scope, &DNS_RESOURCE_KEY_CONST(i->rr->key->class, DNS_TYPE_ANY, dns_resource_key_name(i->rr->key)), false);
+        const_key = DNS_RESOURCE_KEY_CONST(i->rr->key->class, DNS_TYPE_ANY, dns_resource_key_name(i->rr->key));
+        t = dns_scope_find_transaction(i->scope, &const_key, DNSSEC_NO, false);
         if (!t) {
                 _cleanup_(dns_resource_key_unrefp) DnsResourceKey *key = NULL;
 
@@ -177,7 +179,7 @@ static int dns_zone_item_probe_start(DnsZoneItem *i)  {
                 if (!key)
                         return -ENOMEM;
 
-                r = dns_transaction_new(&t, i->scope, key);
+                r = dns_transaction_new(&t, i->scope, key, DNSSEC_NO);
                 if (r < 0)
                         return r;
         }
@@ -384,7 +386,7 @@ int dns_zone_lookup(DnsZone *z, DnsResourceKey *key, DnsAnswer **ret_answer, Dns
                         if (k < 0)
                                 return k;
                         if (k > 0) {
-                                r = dns_answer_add(answer, j->rr, 0, DNS_ANSWER_AUTHENTICATED);
+                                r = dns_answer_add(answer, j->rr, 0, DNS_ANSWER_AUTHENTICATED, DNSSEC_NO);
                                 if (r < 0)
                                         return r;
 
@@ -410,7 +412,7 @@ int dns_zone_lookup(DnsZone *z, DnsResourceKey *key, DnsAnswer **ret_answer, Dns
                         if (j->state != DNS_ZONE_ITEM_PROBING)
                                 tentative = false;
 
-                        r = dns_answer_add(answer, j->rr, 0, DNS_ANSWER_AUTHENTICATED);
+                        r = dns_answer_add(answer, j->rr, 0, DNS_ANSWER_AUTHENTICATED, DNSSEC_NO);
                         if (r < 0)
                                 return r;
                 }

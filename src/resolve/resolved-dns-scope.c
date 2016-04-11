@@ -768,14 +768,13 @@ void dns_scope_process_query(DnsScope *s, DnsStream *stream, DnsPacket *p) {
         }
 }
 
-DnsTransaction *dns_scope_find_transaction(DnsScope *scope, DnsResourceKey *key, bool cache_ok) {
+DnsTransaction *dns_scope_find_transaction(DnsScope *scope, DnsResourceKey *key, DnssecMode dnssec_mode, bool cache_ok) {
         DnsTransaction *t;
 
         assert(scope);
         assert(key);
 
-        /* Try to find an ongoing transaction that is a equal to the
-         * specified question */
+        /* Try to find an ongoing transaction that is a equal to the specified question */
         t = hashmap_get(scope->transactions_by_key, key);
         if (!t)
                 return NULL;
@@ -785,6 +784,10 @@ DnsTransaction *dns_scope_find_transaction(DnsScope *scope, DnsResourceKey *key,
         if (!cache_ok &&
             IN_SET(t->state, DNS_TRANSACTION_SUCCESS, DNS_TRANSACTION_RCODE_FAILURE) &&
             t->answer_source != DNS_TRANSACTION_NETWORK)
+                return NULL;
+
+        /* Refuse existing transaction if it doesn't require DNSSEC, and the new one does */
+        if (t->dnssec_mode == DNSSEC_NO && dnssec_mode != DNSSEC_NO)
                 return NULL;
 
         return t;
