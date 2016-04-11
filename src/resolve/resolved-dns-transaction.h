@@ -66,6 +66,7 @@ struct DnsTransaction {
         DnsResourceKey *key;
 
         DnsTransactionState state;
+        DnssecMode dnssec_mode;
 
         uint16_t id;
 
@@ -91,7 +92,7 @@ struct DnsTransaction {
          * the NODATA or NXDOMAIN case is. It says nothing about
          * additional RRs listed in the answer, however they have
          * their own DNS_ANSWER_AUTHORIZED FLAGS. Note that this bit
-         * is defined different than the AD bit in DNS packets, as
+         * is defined differently than the AD bit in DNS packets, as
          * that covers more than just the actual primary answer. */
         bool answer_authenticated;
 
@@ -144,7 +145,7 @@ struct DnsTransaction {
         LIST_FIELDS(DnsTransaction, transactions_by_scope);
 };
 
-int dns_transaction_new(DnsTransaction **ret, DnsScope *s, DnsResourceKey *key);
+int dns_transaction_new(DnsTransaction **ret, DnsScope *s, DnsResourceKey *key, DnssecMode dnssec_mode);
 DnsTransaction* dns_transaction_free(DnsTransaction *t);
 
 bool dns_transaction_gc(DnsTransaction *t);

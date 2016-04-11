@@ -35,6 +35,8 @@
 #include "parse-util.h"
 #include "resolved-def.h"
 #include "resolved-dns-packet.h"
+#include "resolved-dns-query.h"
+#include "resolve-util.h"
 #include "strv.h"
 #include "terminal-util.h"
 
@@ -1581,6 +1583,7 @@ static int parse_argv(int argc, char *argv[]) {
                 ARG_TLSA,
                 ARG_RAW,
                 ARG_SEARCH,
+                ARG_DNSSEC,
                 ARG_STATISTICS,
                 ARG_RESET_STATISTICS,
                 ARG_STATUS,
@@ -1604,6 +1607,7 @@ static int parse_argv(int argc, char *argv[]) {
                 { "tlsa",             optional_argument, NULL, ARG_TLSA             },
                 { "raw",              optional_argument, NULL, ARG_RAW              },
                 { "search",           required_argument, NULL, ARG_SEARCH           },
+                { "dnssec",           optional_argument, NULL, ARG_DNSSEC           },
                 { "statistics",       no_argument,       NULL, ARG_STATISTICS,      },
                 { "reset-statistics", no_argument,       NULL, ARG_RESET_STATISTICS },
                 { "status",           no_argument,       NULL, ARG_STATUS           },
@@ -1773,6 +1777,19 @@ static int parse_argv(int argc, char *argv[]) {
                                 return log_error_errno(r, "Failed to parse --search argument.");
                         SET_FLAG(arg_flags, SD_RESOLVED_NO_SEARCH, r == 0);
                         break;
+
+                case ARG_DNSSEC: {
+                        DnssecMode mode = DNSSEC_YES;
+
+                        if (optarg) {
+                                mode = dnssec_mode_from_string(optarg);
+                                if (mode < 0)
+                                        return log_error("Invalid DNSSEC mode \"%s\".", optarg);
+                        }
+
+                        arg_flags |= dns_query_dnssec_mode_to_flags(mode);
+                        break;
+                }
 
                 case ARG_STATISTICS:
                         arg_mode = MODE_STATISTICS;

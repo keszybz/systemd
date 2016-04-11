@@ -2212,14 +2212,14 @@ int dns_packet_extract(DnsPacket *p) {
 
                                 p->opt = dns_resource_record_ref(rr);
                         } else {
-
                                 /* According to RFC 4795, section 2.9. only the RRs from the Answer section shall be
                                  * cached. Hence mark only those RRs as cacheable by default, but not the ones from the
                                  * Additional or Authority sections. */
+                                DnsAnswerFlags flags =
+                                        (i < DNS_PACKET_ANCOUNT(p) ? DNS_ANSWER_CACHEABLE : 0) |
+                                        (p->protocol == DNS_PROTOCOL_MDNS && !cache_flush ? DNS_ANSWER_SHARED_OWNER : 0);
 
-                                r = dns_answer_add(answer, rr, p->ifindex,
-                                                   (i < DNS_PACKET_ANCOUNT(p) ? DNS_ANSWER_CACHEABLE : 0) |
-                                                   (p->protocol == DNS_PROTOCOL_MDNS && !cache_flush ? DNS_ANSWER_SHARED_OWNER : 0));
+                                r = dns_answer_add(answer, rr, p->ifindex, flags, _DNSSEC_RESULT_INVALID);
                                 if (r < 0)
                                         return r;
                         }

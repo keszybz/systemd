@@ -261,7 +261,6 @@ Features:
   - resolved should optionally register additional per-interface LLMNR
     names, so that for the container case we can establish the same name
     (maybe "host") for referencing the server, everywhere.
-  - allow clients to request DNSSEC for a single lookup even if DNSSEC is off (?)
   - hook up resolved with machined-based address resolution
 
 * refcounting in sd-resolve is borked

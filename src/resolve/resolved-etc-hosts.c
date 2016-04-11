@@ -390,7 +390,7 @@ int manager_etc_hosts_lookup(Manager *m, DnsQuestion* q, DnsAnswer **answer) {
                                 if (!rr->ptr.name)
                                         return -ENOMEM;
 
-                                r = dns_answer_add(*answer, rr, 0, DNS_ANSWER_AUTHENTICATED);
+                                r = dns_answer_add(*answer, rr, 0, DNS_ANSWER_AUTHENTICATED, DNSSEC_UNSIGNED);
                                 if (r < 0)
                                         return r;
                         }
@@ -439,7 +439,7 @@ int manager_etc_hosts_lookup(Manager *m, DnsQuestion* q, DnsAnswer **answer) {
                 if (r < 0)
                         return r;
 
-                r = dns_answer_add(*answer, rr, 0, DNS_ANSWER_AUTHENTICATED);
+                r = dns_answer_add(*answer, rr, 0, DNS_ANSWER_AUTHENTICATED, DNSSEC_UNSIGNED);
                 if (r < 0)
                         return r;
         }
