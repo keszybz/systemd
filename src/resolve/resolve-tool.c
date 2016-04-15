@@ -1558,7 +1558,7 @@ static void help(void) {
                "     --service-address=BOOL Resolve address for services (default: yes)\n"
                "     --service-txt=BOOL     Resolve TXT records for services (default: yes)\n"
                "     --openpgp              Query OpenPGP public key\n"
-               "     --tlsa                 Query TLS public key\n"
+               "     --tlsa[=PROTO]         Query TLS public key\n"
                "     --cname=BOOL           Follow CNAME redirects (default: yes)\n"
                "     --search=BOOL          Use search domains for single-label names\n"
                "                                                              (default: yes)\n"

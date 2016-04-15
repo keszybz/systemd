@@ -86,7 +86,7 @@
     <cmdsynopsis>
       <command>systemd-resolve</command>
       <arg choice="opt" rep="repeat">OPTIONS</arg>
-      <command> --tlsa</command>
+      <command> --tlsa<optional>=PROTOCOL</optional></command>
       <arg choice="plain"><replaceable>DOMAIN<optional>:PORT</optional></replaceable></arg>
     </cmdsynopsis>
 
@@ -235,15 +235,15 @@
       </varlistentry>
 
       <varlistentry>
-        <term><option>--tlsa</option></term>
+        <term><option>--tlsa<optional>=<replaceable>PROTOCOL</replaceable></optional></option></term>
 
         <listitem><para>Enables TLSA resource record resolution (see above).
         A query will be performed for each of the specified names prefixed with
         the port and family
-        (<literal>_<replaceable>port</replaceable>._<replaceable>family</replaceable>.<replaceable>domain</replaceable></literal>).
+        (<literal>_<replaceable>PORT</replaceable>._<replaceable>PROTOCOL</replaceable>.<replaceable>DOMAIN</replaceable></literal>).
         The port number may be specified after a colon
         (<literal>:</literal>), otherwise <constant>443</constant> will be used
-        by default. The family may be specified as an argument after
+        by default. The protocol may be specified as an argument after
         <option>--tlsa</option>, otherwise <constant>tcp</constant> will be
         used.</para></listitem>
       </varlistentry>
