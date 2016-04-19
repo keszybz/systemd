@@ -24,6 +24,7 @@ Y https://tools.ietf.org/html/rfc4035 → Protocol Modifications for the DNS Sec
 ! https://tools.ietf.org/html/rfc4183 → A Suggested Scheme for DNS Resolution of Networks and Gateways
 Y https://tools.ietf.org/html/rfc4255 → Using DNS to Securely Publish Secure Shell (SSH) Key Fingerprints
 Y https://tools.ietf.org/html/rfc4343 → Domain Name System (DNS) Case Insensitivity Clarification
+~ https://tools.ietf.org/html/rfc4398 → Storing Certificates in the Domain Name System (DNS)
 ~ https://tools.ietf.org/html/rfc4470 → Minimally Covering NSEC Records and DNSSEC On-line Signing
 Y https://tools.ietf.org/html/rfc4501 → Domain Name System Uniform Resource Identifiers
 Y https://tools.ietf.org/html/rfc4509 → Use of SHA-256 in DNSSEC Delegation Signer (DS) Resource Records (RRs)
@@ -41,6 +42,8 @@ Y https://tools.ietf.org/html/rfc6303 → Locally Served DNS Zones
 Y https://tools.ietf.org/html/rfc6604 → xNAME RCODE and Status Bits Clarification
 Y https://tools.ietf.org/html/rfc6605 → Elliptic Curve Digital Signature Algorithm (DSA) for DNSSEC
   https://tools.ietf.org/html/rfc6672 → DNAME Redirection in the DNS
+Y https://tools.ietf.org/html/rfc6698 → The DNS-Based Authentication of Named Entities (DANE)
+                                        Transport Layer Security (TLS) Protocol: TLSA
 ! https://tools.ietf.org/html/rfc6731 → Improved Recursive DNS Server Selection for Multi-Interfaced Nodes
 Y https://tools.ietf.org/html/rfc6761 → Special-Use Domain Names
   https://tools.ietf.org/html/rfc6762 → Multicast DNS
@@ -50,10 +53,16 @@ Y https://tools.ietf.org/html/rfc6840 → Clarifications and Implementation Note
 Y https://tools.ietf.org/html/rfc6891 → Extension Mechanisms for DNS (EDNS(0))
 Y https://tools.ietf.org/html/rfc6944 → Applicability Statement: DNS Security (DNSSEC) DNSKEY Algorithm Implementation Status
 Y https://tools.ietf.org/html/rfc6975 → Signaling Cryptographic Algorithm Understanding in DNS Security Extensions (DNSSEC)
+! https://tools.ietf.org/html/rfc7050 → Discovery of the IPv6 Prefix Used for IPv6 Address Synthesis
 Y https://tools.ietf.org/html/rfc7129 → Authenticated Denial of Existence in the DNS
+! https://tools.ietf.org/html/rfc7218 → Adding Acronyms to Simplify Conversations about
+                                        DNS-Based Authentication of Named Entities (DANE)
 Y https://tools.ietf.org/html/rfc7646 → Definition and Use of DNSSEC Negative Trust Anchors
+? https://tools.ietf.org/html/rfc7671 → The DNS-Based Authentication of Named Entities (DANE) Protocol:
+                                        Updates and Operational Guidance
 ~ https://tools.ietf.org/html/rfc7719 → DNS Terminology
 
 Also relevant:
 
   https://www.iab.org/documents/correspondence-reports-documents/2013-2/iab-statement-dotless-domains-considered-harmful/
+  https://fedoraproject.org/wiki/Changes/Default_Local_DNS_Resolver
