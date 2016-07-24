@@ -67,6 +67,7 @@
     shell compatible execution engine.</para>
 
     <para>Note that the kernel command line options
+    <varname>vconsole.n_setup_vts=</varname>,
     <varname>vconsole.keymap=</varname>,
     <varname>vconsole.keymap.toggle=</varname>,
     <varname>vconsole.font=</varname>,
@@ -86,6 +87,13 @@
 
     <variablelist>
 
+      <varlistentry>
+        <term><varname>N_SETUP_VTS</varname></term>
+
+        <listitem><para>Configures the amount of consoles
+        that should be set. Defaults to 12 if omitted.
+        </para></listitem>
+      </varlistentry>
       <varlistentry>
         <term><varname>KEYMAP=</varname></term>
         <term><varname>KEYMAP_TOGGLE=</varname></term>
