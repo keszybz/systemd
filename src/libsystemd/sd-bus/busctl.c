@@ -846,10 +846,6 @@ static int on_property(const char *interface, const char *name, const char *sign
         return 0;
 }
 
-static const char *strdash(const char *x) {
-        return isempty(x) ? "-" : x;
-}
-
 static int introspect(sd_bus *bus, char **argv) {
         static const struct hash_ops member_hash_ops = {
                 .hash = member_hash_func,

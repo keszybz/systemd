@@ -66,6 +66,10 @@ static inline bool isempty(const char *p) {
         return !p || !p[0];
 }
 
+static inline const char* strdash(const char *x) {
+        return isempty(x) ? "-" : x;
+}
+
 static inline const char *empty_to_null(const char *p) {
         return isempty(p) ? NULL : p;
 }
