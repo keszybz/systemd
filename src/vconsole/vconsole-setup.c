@@ -35,6 +35,7 @@
 #include "io-util.h"
 #include "locale-util.h"
 #include "log.h"
+#include "parse-util.h"
 #include "process-util.h"
 #include "signal-util.h"
 #include "stdio-util.h"
@@ -42,6 +43,9 @@
 #include "terminal-util.h"
 #include "util.h"
 #include "virt.h"
+
+#define MAX_CONSOLES 63
+#define DEF_CONSOLES 12
 
 static bool is_vconsole(int fd) {
         unsigned char data[1];
@@ -190,11 +194,12 @@ static int font_load_and_wait(const char *vc, const char *font, const char *map,
  * font. It also allows to restart systemd-vconsole-setup.service,
  * to apply a new font to all VTs.
  */
-static void font_copy_to_all_vcs(int fd) {
+static void font_copy_to_all_vcs(int fd, unsigned n_setup_vts) {
         struct vt_stat vcs = {};
         struct unimapdesc unimapd;
         _cleanup_free_ struct unipair* unipairs = NULL;
-        int i, r;
+        unsigned i;
+        int r;
 
         unipairs = new(struct unipair, USHRT_MAX);
         if (!unipairs) {
@@ -209,7 +214,7 @@ static void font_copy_to_all_vcs(int fd) {
                 return;
         }
 
-        for (i = 1; i <= 15; i++) {
+        for (i = 1; i <= n_setup_vts; i++) {
                 char vcname[strlen("/dev/vcs") + DECIMAL_STR_MAX(int)];
                 _cleanup_close_ int vcfd = -1;
                 struct console_font_op cfo = {};
@@ -249,10 +254,11 @@ static void font_copy_to_all_vcs(int fd) {
 int main(int argc, char **argv) {
         const char *vc;
         _cleanup_free_ char
-                *vc_keymap = NULL, *vc_keymap_toggle = NULL,
+                *n_setup_vts_s = NULL, *vc_keymap = NULL, *vc_keymap_toggle = NULL,
                 *vc_font = NULL, *vc_font_map = NULL, *vc_font_unimap = NULL;
         _cleanup_close_ int fd = -1;
         bool utf8, font_copy = false, font_ok, keyboard_ok;
+        unsigned n_setup_vts;
         int r = EXIT_FAILURE;
 
         log_set_target(LOG_TARGET_AUTO);
@@ -282,6 +288,7 @@ int main(int argc, char **argv) {
         utf8 = is_locale_utf8();
 
         r = parse_env_file("/etc/vconsole.conf", NEWLINE,
+                           "N_SETUP_VTS", &n_setup_vts_s,
                            "KEYMAP", &vc_keymap,
                            "KEYMAP_TOGGLE", &vc_keymap_toggle,
                            "FONT", &vc_font,
@@ -295,6 +302,7 @@ int main(int argc, char **argv) {
         /* Let the kernel command line override /etc/vconsole.conf */
         if (detect_container() <= 0) {
                 r = parse_env_file("/proc/cmdline", WHITESPACE,
+                                   "vconsole.n.setup.vts", &n_setup_vts_s,
                                    "vconsole.keymap", &vc_keymap,
                                    "vconsole.keymap.toggle", &vc_keymap_toggle,
                                    "vconsole.font", &vc_font,
@@ -306,6 +314,18 @@ int main(int argc, char **argv) {
                         log_warning_errno(r, "Failed to read /proc/cmdline: %m");
         }
 
+        /* Sanitize n_setup_vts_s */
+        if (n_setup_vts_s == NULL)
+                n_setup_vts = DEF_CONSOLES;
+        else {
+                r = safe_atou(n_setup_vts_s, &n_setup_vts);
+                if (r != 0 || n_setup_vts < 1 || n_setup_vts > MAX_CONSOLES) {
+                        log_warning("N_SETUP_VTS (vconsole.n.setup.vts) out of range, should be in [1.." STRINGIFY(MAX_CONSOLES) "].");
+                        n_setup_vts = DEF_CONSOLES;
+                }
+        }
+
+
         if (utf8)
                 (void) enable_utf8(fd);
         else
@@ -316,7 +336,7 @@ int main(int argc, char **argv) {
 
         /* Only copy the font when we executed setfont successfully */
         if (font_copy && font_ok)
-                (void) font_copy_to_all_vcs(fd);
+                (void) font_copy_to_all_vcs(fd, n_setup_vts);
 
         return font_ok && keyboard_ok ? EXIT_SUCCESS : EXIT_FAILURE;
 }
