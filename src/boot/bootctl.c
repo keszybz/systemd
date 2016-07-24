@@ -1061,7 +1061,7 @@ static int bootctl_main(int argc, char*argv[]) {
                         if (r < 0)
                                 log_warning_errno(r, "Failed to query secure boot status: %m");
                         else
-                                printf("  Secure Boot: %s\n", r ? "enabled" : "disabled");
+                                printf("  Secure Boot: %sd\n", enable_disable(r));
 
                         r = is_efi_secure_boot_setup_mode();
                         if (r < 0)
