@@ -45,6 +45,7 @@
 #include "bus-kernel.h"
 #include "bus-util.h"
 #include "clean-ipc.h"
+#include "conf-files.h"
 #include "dbus-job.h"
 #include "dbus-manager.h"
 #include "dbus-unit.h"
@@ -1255,12 +1256,48 @@ static void manager_distribute_fds(Manager *m, FDSet *fds) {
         }
 }
 
+static int manager_load_environment(Manager *m) {
+        _cleanup_strv_free_ char **dirs = NULL, **files = NULL;
+        char **i;
+        int r;
+
+        if (!MANAGER_IS_USER(m))
+                return 0;
+
+        r = environment_dirs(&dirs);
+        if (r < 0)
+                return r;
+
+        r = conf_files_list_strv(&files, ".conf", NULL, (const char **) dirs);
+        if (r < 0)
+                return r;
+
+        /* This will mutate the existing environment, based on the presumption
+         * that in case of failure, a partial update is better than none. */
+
+        STRV_FOREACH(i, files) {
+                r = merge_env_file(&m->environment, NULL, *i, MERGE_ENV_FILE_EXPAND);
+                if (r == -ENOMEM)
+                        return r;
+                else if (r < 0)
+                        continue;
+        }
+
+        manager_clean_environment(m);
+
+        return 0;
+}
+
 int manager_startup(Manager *m, FILE *serialization, FDSet *fds) {
         int r, q;
 
         assert(m);
 
         r = lookup_paths_init(&m->lookup_paths, m->unit_file_scope, 0, NULL);
+        if (r < 0)
+                return r;
+
+        r = manager_load_environment(m);
         if (r < 0)
                 return r;
 
@@ -2822,6 +2859,10 @@ int manager_reload(Manager *m) {
                 r = q;
 
         q = manager_generate_environment(m);
+        if (q < 0 && r >= 0)
+                r = q;
+
+        q = manager_load_environment(m);
         if (q < 0 && r >= 0)
                 r = q;
 
