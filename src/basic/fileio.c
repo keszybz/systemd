@@ -30,6 +30,7 @@
 
 #include "alloc-util.h"
 #include "ctype.h"
+#include "env-util.h"
 #include "escape.h"
 #include "fd-util.h"
 #include "fileio.h"
@@ -765,6 +766,49 @@ int load_env_file_pairs(FILE *f, const char *fname, const char *newline, char **
 
         *rl = m;
         return 0;
+}
+
+typedef struct {
+        char ***env;
+        MergeEnvFileFlags flags;
+} MergeEnvFileInfo;
+
+static int merge_env_file_push(
+                const char *filename, unsigned line,
+                const char *key, char *value,
+                void *userdata,
+                int *n_pushed) {
+        MergeEnvFileInfo *d = userdata;
+
+        if (d->flags & MERGE_ENV_FILE_EXPAND) {
+                char *expanded_value;
+
+                expanded_value = replace_env(value, *d->env);
+                if (expanded_value) {
+                        free(value);
+                        value = expanded_value;
+                } else
+                        log_debug("Failed to expand variables in \"%s\", using unexpanded", value);
+        }
+
+        return load_env_file_push(filename, line, key, value, d->env, n_pushed);
+}
+
+int merge_env_file(
+                char ***env,
+                FILE *f,
+                const char *fname,
+                MergeEnvFileFlags flags) {
+
+        MergeEnvFileInfo d = {
+                .env = env,
+                .flags = flags,
+        };
+        int r;
+
+        r = parse_env_file_internal(f, fname, NEWLINE, merge_env_file_push, &d, NULL);
+        strv_env_clean(*env);
+        return r;
 }
 
 static void write_env_var(FILE *f, const char *v) {
