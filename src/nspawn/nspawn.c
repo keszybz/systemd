@@ -2727,8 +2727,6 @@ static int inner_child(
         assert(directory);
         assert(kmsg_socket >= 0);
 
-        cg_unified_flush();
-
         if (arg_userns_mode != USER_NAMESPACE_NO) {
                 /* Tell the parent, that it now can write the UID map. */
                 (void) barrier_place(barrier); /* #1 */
@@ -2991,8 +2989,6 @@ static int outer_child(
         assert(notify_socket >= 0);
         assert(kmsg_socket >= 0);
 
-        cg_unified_flush();
-
         if (prctl(PR_SET_PDEATHSIG, SIGKILL) < 0)
                 return log_error_errno(errno, "PR_SET_PDEATHSIG failed: %m");
 
@@ -3036,10 +3032,6 @@ static int outer_child(
                 return r;
 
         r = determine_uid_shift(directory);
-        if (r < 0)
-                return r;
-
-        r = detect_unified_cgroup_hierarchy(directory);
         if (r < 0)
                 return r;
 
@@ -4085,6 +4077,7 @@ int main(int argc, char *argv[]) {
 
         log_parse_environment();
         log_open();
+        cg_unified_flush();
 
         /* Make sure rename_process() in the stub init process can work */
         saved_argv = argv;
@@ -4258,6 +4251,10 @@ int main(int argc, char *argv[]) {
         }
 
         r = custom_mounts_prepare();
+        if (r < 0)
+                goto finish;
+
+        r = detect_unified_cgroup_hierarchy(arg_directory);
         if (r < 0)
                 goto finish;
 
