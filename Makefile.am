@@ -864,6 +864,8 @@ libbasic_la_SOURCES = \
 	src/basic/bus-label.h \
 	src/basic/ratelimit.h \
 	src/basic/ratelimit.c \
+	src/basic/exec-util.c \
+	src/basic/exec-util.h \
 	src/basic/exit-status.c \
 	src/basic/exit-status.h \
 	src/basic/virt.c \
@@ -1519,6 +1521,7 @@ tests += \
 	test-ellipsize \
 	test-util \
 	test-mount-util \
+	test-exec-util \
 	test-cpu-set-util \
 	test-hexdecoct \
 	test-escape \
@@ -1901,6 +1904,12 @@ test_mount_util_SOURCES = \
 	src/test/test-mount-util.c
 
 test_mount_util_LDADD = \
+	libsystemd-shared.la
+
+test_exec_util_SOURCES = \
+	src/test/test-exec-util.c
+
+test_exec_util_LDADD = \
 	libsystemd-shared.la
 
 test_hexdecoct_SOURCES = \
