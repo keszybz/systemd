@@ -17,6 +17,7 @@ systemdsystemunitpath=${systemdsystemconfdir}:/etc/systemd/system:/run/systemd/s
 systemduserunitpath=${systemduserconfdir}:/etc/systemd/user:/run/systemd/user:/usr/local/lib/systemd/user:/usr/local/share/systemd/user:${systemduserunitdir}:/usr/lib/systemd/user:/usr/share/systemd/user
 systemdsystemgeneratordir=@systemgeneratordir@
 systemdusergeneratordir=@usergeneratordir@
+systemdenvironmentgeneratordir=@environmentgeneratordir@
 systemdsleepdir=@systemsleepdir@
 systemdshutdowndir=@systemshutdowndir@
 tmpfilesdir=@tmpfilesdir@

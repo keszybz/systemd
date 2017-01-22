@@ -52,6 +52,10 @@ struct LookupPaths {
          * unit is unloaded. The user should not alter this directory directly. */
         char *transient;
 
+        /* Dynamically generated environment environment .conf files.
+         * Only present for the user manager instance. */
+        char *generated_environment;
+
         /* Where the snippets created by "systemctl set-property" are placed. Note that for transient units, the
          * snippets are placed in the transient directory though (see above). The user should not alter this directory
          * directly. */
@@ -61,6 +65,12 @@ struct LookupPaths {
         /* The root directory prepended to all items above, or NULL */
         char *root_dir;
 };
+
+int environment_dirs(char ***ret);
+
+int lookup_paths_mkdir_environment(LookupPaths *p);
+void lookup_paths_trim_environment(LookupPaths *p);
+void lookup_paths_flush_environment(LookupPaths *p);
 
 int lookup_paths_init(LookupPaths *p, UnitFileScope scope, LookupPathsFlags flags, const char *root_dir);
 
@@ -74,3 +84,4 @@ void lookup_paths_free(LookupPaths *p);
 #define _cleanup_lookup_paths_free_ _cleanup_(lookup_paths_free)
 
 char **generator_binary_paths(UnitFileScope scope);
+char **environment_generator_binary_paths(void);

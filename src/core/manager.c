@@ -1083,6 +1083,7 @@ Manager* manager_free(Manager *m) {
         manager_shutdown_cgroup(m, m->exit_code != MANAGER_REEXECUTE);
 
         lookup_paths_flush_generator(&m->lookup_paths);
+        lookup_paths_flush_environment(&m->lookup_paths);
 
         bus_done(m);
 
@@ -2810,12 +2811,17 @@ int manager_reload(Manager *m) {
         /* From here on there is no way back. */
         manager_clear_jobs_and_units(m);
         lookup_paths_flush_generator(&m->lookup_paths);
+        lookup_paths_flush_environment(&m->lookup_paths);
         lookup_paths_free(&m->lookup_paths);
         dynamic_user_vacuum(m, false);
         m->uid_refs = hashmap_free(m->uid_refs);
         m->gid_refs = hashmap_free(m->gid_refs);
 
         q = lookup_paths_init(&m->lookup_paths, m->unit_file_scope, 0, NULL);
+        if (q < 0 && r >= 0)
+                r = q;
+
+        q = manager_generate_environment(m);
         if (q < 0 && r >= 0)
                 r = q;
 
@@ -3049,6 +3055,73 @@ static int manager_run_generators(Manager *m) {
 
         RUN_WITH_UMASK(0022)
                 execute_directories((const char* const*) paths, DEFAULT_TIMEOUT_USEC, (char**) argv);
+
+finish:
+        lookup_paths_trim_generator(&m->lookup_paths);
+        return r;
+}
+
+int manager_generate_environment(Manager *m) {
+        _cleanup_strv_free_ char **paths = NULL, **dirs = NULL;
+        char **path;
+        int r;
+        size_t len;
+
+        assert(m);
+
+        if (m->test_run)
+                return 0;
+
+        if (!MANAGER_IS_USER(m))
+                return 0;
+
+        paths = environment_generator_binary_paths();
+        if (!paths)
+                return log_oom();
+
+        r = environment_dirs(&dirs);
+        if (r < 0)
+                return log_warning_errno(r, "Failed to list environment dirs: %m");
+
+        /* Optimize by skipping the whole process by not creating output directories
+         * if no generators are found. */
+        STRV_FOREACH(path, paths) {
+                if (access(*path, F_OK) >= 0)
+                        goto found;
+                if (errno != ENOENT)
+                        log_warning_errno(errno, "Failed to open generator directory %s: %m", *path);
+        }
+
+        return 0;
+
+ found:
+        r = lookup_paths_mkdir_environment(&m->lookup_paths);
+        if (r < 0) {
+                log_warning_errno(r, "Failed to create directory \"%s\": %m",
+                                  m->lookup_paths.generated_environment);
+                goto finish;
+        }
+
+        /* Leave first item empty, execute_directory() will fill something in */
+        r = strv_extend_front(&dirs, NULL);
+        if (r < 0) {
+                log_oom();
+                goto finish;
+        }
+
+        /* We assume that dirs[-2] is /run/user/…, and dirs[-1] is ~/.config/systemd/…
+         * The generators should write to the first of those, and completely ignore the
+         * latter, hence just trim the last entry. */
+        len = strv_length(dirs);
+        assert(len > 2);
+        dirs[len - 1] = mfree(dirs[len - 1]);
+        assert(startswith(dirs[len - 2], "/run/user/"));
+
+        RUN_WITH_UMASK(0077)
+                execute_directories_async((const char* const*) paths,
+                                          DEFAULT_TIMEOUT_USEC,
+                                          false,
+                                          (char**) dirs);
 
 finish:
         lookup_paths_trim_generator(&m->lookup_paths);

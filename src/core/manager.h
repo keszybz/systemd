@@ -326,6 +326,8 @@ struct Manager {
 int manager_new(UnitFileScope scope, bool test_run, Manager **m);
 Manager* manager_free(Manager *m);
 
+int manager_generate_environment(Manager *m);
+
 void manager_enumerate(Manager *m);
 int manager_startup(Manager *m, FILE *serialization, FDSet *fds);
 

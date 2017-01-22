@@ -22,7 +22,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "sd-path.h"
+
 #include "alloc-util.h"
+#include "def.h"
 #include "install.h"
 #include "log.h"
 #include "macro.h"
@@ -307,6 +310,44 @@ static int acquire_transient_dir(UnitFileScope scope, char **ret) {
         }
 }
 
+static int path_lookup_generated_environment_dir(char **ret) {
+        assert(ret);
+
+        return user_runtime_dir(ret, "/environment.d");
+}
+
+int environment_dirs(char ***ret) {
+        _cleanup_strv_free_ char **dirs = NULL;
+        _cleanup_free_ char *b = NULL, *c = NULL;
+        int r;
+
+        dirs = strv_split_nulstr(CONF_PATHS_NULSTR("environment.d"));
+        if (!dirs)
+                return -ENOMEM;
+
+        /* /run/user/<uid>/systemd/environment.d */
+        r = path_lookup_generated_environment_dir(&b);
+        if (r < 0)
+                return r;
+
+        r = strv_extend_front(&dirs, b);
+        if (r < 0)
+                return r;
+
+        /* ~/.config/systemd/environment.d */
+        r = sd_path_home(SD_PATH_USER_CONFIGURATION, "environment.d", &c);
+        if (r < 0)
+                return r;
+
+        r = strv_extend_front(&dirs, c);
+        if (r < 0)
+                return r;
+
+        *ret = dirs;
+        dirs = NULL;
+        return 0;
+}
+
 static int acquire_config_dirs(UnitFileScope scope, char **persistent, char **runtime) {
         _cleanup_free_ char *a = NULL, *b = NULL;
         int r;
@@ -448,7 +489,7 @@ int lookup_paths_init(
                 *root = NULL,
                 *persistent_config = NULL, *runtime_config = NULL,
                 *generator = NULL, *generator_early = NULL, *generator_late = NULL,
-                *transient = NULL,
+                *transient = NULL, *environment = NULL,
                 *persistent_control = NULL, *runtime_control = NULL;
         bool append = false; /* Add items from SYSTEMD_UNIT_PATH before normal directories */
         _cleanup_strv_free_ char **paths = NULL;
@@ -488,6 +529,10 @@ int lookup_paths_init(
         if (r < 0 && r != -EOPNOTSUPP && r != -ENXIO)
                 return r;
 
+        r = path_lookup_generated_environment_dir(&environment);
+        if (r < 0 && r != -EOPNOTSUPP && r != -ENXIO)
+                return r;
+
         r = acquire_control_dirs(scope, &persistent_control, &runtime_control);
         if (r < 0 && r != -EOPNOTSUPP && r != -ENXIO)
                 return r;
@@ -503,8 +548,7 @@ int lookup_paths_init(
                         append = true;
                 }
 
-                /* FIXME: empty components in other places should be
-                 * rejected. */
+                /* FIXME: empty components in other places should be rejected. */
 
                 r = path_split_and_make_absolute(e, &paths);
                 if (r < 0)
@@ -646,6 +690,9 @@ int lookup_paths_init(
         p->transient = transient;
         transient = NULL;
 
+        p->generated_environment = environment;
+        environment = NULL;
+
         p->persistent_control = persistent_control;
         p->runtime_control = runtime_control;
         persistent_control = runtime_control = NULL;
@@ -750,6 +797,15 @@ int lookup_paths_reduce(LookupPaths *p) {
         return 0;
 }
 
+int lookup_paths_mkdir_environment(LookupPaths *p) {
+        assert(p);
+
+        if (!p->generated_environment)
+                return -EINVAL;
+
+        return mkdir_p_label(p->generated_environment, 0700);
+}
+
 int lookup_paths_mkdir_generator(LookupPaths *p) {
         int r, q;
 
@@ -769,6 +825,24 @@ int lookup_paths_mkdir_generator(LookupPaths *p) {
                 r = q;
 
         return r;
+}
+
+void lookup_paths_trim_environment(LookupPaths *p) {
+        assert(p);
+
+        /* Trim empty dirs */
+
+        if (p->generated_environment)
+                (void) rmdir(p->generated_environment);
+}
+
+void lookup_paths_flush_environment(LookupPaths *p) {
+        assert(p);
+
+        /* Flush the generated environment files in full */
+
+        if (p->generated_environment)
+                (void) rm_rf(p->generated_environment, REMOVE_ROOT);
 }
 
 void lookup_paths_trim_generator(LookupPaths *p) {
@@ -819,4 +893,13 @@ char **generator_binary_paths(UnitFileScope scope) {
         default:
                 assert_not_reached("Hmm, unexpected scope.");
         }
+}
+
+char **environment_generator_binary_paths(void) {
+
+        return strv_new("/run/systemd/environment-generators",
+                        "/etc/systemd/environment-generators",
+                        "/usr/local/lib/systemd/environment-generators",
+                        ENVIRONMENT_GENERATOR_PATH,
+                        NULL);
 }

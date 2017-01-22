@@ -1803,6 +1803,8 @@ int main(int argc, char *argv[]) {
                 }
         }
 
+        before_startup = now(CLOCK_MONOTONIC);
+
         r = manager_new(arg_system ? UNIT_FILE_SYSTEM : UNIT_FILE_USER, arg_action == ACTION_TEST, &m);
         if (r < 0) {
                 log_emergency_errno(r, "Failed to allocate manager object: %m");
@@ -1821,13 +1823,18 @@ int main(int argc, char *argv[]) {
         m->cad_burst_action = arg_cad_burst_action;
 
         manager_set_defaults(m);
+
+        r = manager_generate_environment(m);
+        if (r < 0) {
+                log_error_errno(r, "Failed to generate environment: %m");
+                goto finish;
+        }
+
         manager_set_show_status(m, arg_show_status);
         manager_set_first_boot(m, empty_etc);
 
         /* Remember whether we should queue the default job */
         queue_default_job = !arg_serialization || arg_switched_root;
-
-        before_startup = now(CLOCK_MONOTONIC);
 
         r = manager_startup(m, arg_serialization, fds);
         if (r < 0) {
