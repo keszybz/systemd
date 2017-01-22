@@ -17,6 +17,12 @@
   along with systemd; If not, see <http://www.gnu.org/licenses/>.
 ***/
 
+#include <stdbool.h>
+
 #include "time-util.h"
 
-void execute_directories(const char* const* directories, usec_t timeout, char *argv[]);
+void execute_directories_async(const char* const* directories, usec_t timeout, bool async, char *argv[]);
+
+static inline void execute_directories(const char* const* directories, usec_t timeout, char *argv[]) {
+        execute_directories_async(directories, timeout, true, argv);
+}

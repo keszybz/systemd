@@ -72,7 +72,7 @@ static int do_spawn(const char *path, char *argv[], pid_t *pid) {
         return 1;
 }
 
-static int do_execute(char **directories, usec_t timeout, char *argv[]) {
+static int do_execute(char **directories, usec_t timeout, bool async, char *argv[]) {
         _cleanup_hashmap_free_free_ Hashmap *pids = NULL;
         _cleanup_strv_free_ char **paths = NULL;
         char **path;
@@ -90,9 +90,18 @@ static int do_execute(char **directories, usec_t timeout, char *argv[]) {
         if (r < 0)
                 return r;
 
-        pids = hashmap_new(NULL);
-        if (!pids)
-                return log_oom();
+        if (async) {
+                pids = hashmap_new(NULL);
+                if (!pids)
+                        return log_oom();
+        }
+
+        /* Abort execution of this process after the timout. We simply
+         * rely on SIGALRM as default action terminating the process,
+         * and turn on alarm(). */
+
+        if (timeout != USEC_INFINITY)
+                alarm((timeout + USEC_PER_SEC - 1) / USEC_PER_SEC);
 
         STRV_FOREACH(path, paths) {
                 _cleanup_free_ char *t = NULL;
@@ -106,19 +115,14 @@ static int do_execute(char **directories, usec_t timeout, char *argv[]) {
                 if (r <= 0)
                         continue;
 
-                r = hashmap_put(pids, PID_TO_PTR(pid), t);
-                if (r < 0)
-                        return log_oom();
-
-                t = NULL;
+                if (async) {
+                        r = hashmap_put(pids, PID_TO_PTR(pid), t);
+                        if (r < 0)
+                                return log_oom();
+                        t = NULL;
+                } else
+                        (void) wait_for_terminate_and_warn(t, pid, true);
         }
-
-        /* Abort execution of this process after the timout. We simply
-         * rely on SIGALRM as default action terminating the process,
-         * and turn on alarm(). */
-
-        if (timeout != USEC_INFINITY)
-                alarm((timeout + USEC_PER_SEC - 1) / USEC_PER_SEC);
 
         while (!hashmap_isempty(pids)) {
                 _cleanup_free_ char *t = NULL;
@@ -136,7 +140,7 @@ static int do_execute(char **directories, usec_t timeout, char *argv[]) {
         return 0;
 }
 
-void execute_directories(const char* const* directories, usec_t timeout, char *argv[]) {
+void execute_directories_async(const char* const* directories, usec_t timeout, bool async, char *argv[]) {
         pid_t executor_pid;
         int r;
         char *name;
@@ -158,7 +162,7 @@ void execute_directories(const char* const* directories, usec_t timeout, char *a
                 return;
 
         } else if (executor_pid == 0) {
-                r = do_execute(dirs, timeout, argv);
+                r = do_execute(dirs, timeout, async, argv);
                 _exit(r < 0 ? EXIT_FAILURE : EXIT_SUCCESS);
         }
 
