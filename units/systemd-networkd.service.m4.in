@@ -16,6 +16,9 @@ Before=network.target multi-user.target shutdown.target
 Conflicts=shutdown.target
 Wants=network.target
 
+Requires=systemd-networkd.socket
+After=systemd-networkd.socket
+
 # On kdbus systems we pull in the busname explicitly, because it
 # carries policy that allows the daemon to acquire its name.
 Wants=org.freedesktop.network1.busname
