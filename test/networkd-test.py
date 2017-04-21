@@ -55,9 +55,9 @@ def setUpModule():
     if NETWORKD_WAIT_ONLINE is None:
         raise OSError(errno.ENOENT, 'systemd-networkd-wait-online not found')
 
-    # Do not run any tests if the system is using networkd already.
+    # Do not run any tests if either of the two units is active already.
     if subprocess.call(['systemctl', 'is-active', '--quiet',
-                        'systemd-networkd.service']) == 0:
+                        'systemd-networkd.service', 'systemd-networkd.socket']) == 0:
         raise unittest.SkipTest('networkd is already active')
 
     # Avoid "Failed to open /dev/tty" errors in containers.
@@ -185,10 +185,10 @@ Name=mybridge
 DNS=192.168.250.1
 Address=192.168.250.33/24
 Gateway=192.168.250.1''')
-        subprocess.check_call(['systemctl', 'start', 'systemd-networkd'])
+        subprocess.check_call(['systemctl', 'start', 'systemd-networkd.service'])
 
     def tearDown(self):
-        subprocess.check_call(['systemctl', 'stop', 'systemd-networkd'])
+        subprocess.check_call(['systemctl', 'stop', 'systemd-networkd.service', 'systemd-networkd.socket'])
         subprocess.check_call(['ip', 'link', 'del', 'mybridge'])
         subprocess.check_call(['ip', 'link', 'del', 'port1'])
         subprocess.check_call(['ip', 'link', 'del', 'port2'])
@@ -205,7 +205,7 @@ Gateway=192.168.250.1''')
 [Bridge]
 Priority=28
 ''')
-        subprocess.check_call(['systemctl', 'restart', 'systemd-networkd'])
+        subprocess.check_call(['systemctl', 'restart', 'systemd-networkd.service'])
         self.assertEqual(self.read_attr('port1', 'brport/priority'), '28')
 
     def test_bridge_port_priority_set_zero(self):
@@ -215,7 +215,7 @@ Priority=28
 [Bridge]
 Priority=0
 ''')
-        subprocess.check_call(['systemctl', 'restart', 'systemd-networkd'])
+        subprocess.check_call(['systemctl', 'restart', 'systemd-networkd.service'])
         self.assertEqual(self.read_attr('port2', 'brport/priority'), '0')
 
 class ClientTestBase(NetworkdTestingUtilities):
@@ -249,7 +249,7 @@ class ClientTestBase(NetworkdTestingUtilities):
 
     def tearDown(self):
         self.shutdown_iface()
-        subprocess.call(['systemctl', 'stop', 'systemd-networkd'])
+        subprocess.call(['systemctl', 'stop', 'systemd-networkd.service', 'systemd-networkd.socket'])
         subprocess.call(['ip', 'link', 'del', 'dummy0'],
                         stderr=subprocess.DEVNULL)
 
@@ -294,14 +294,14 @@ DHCP=%s
         if coldplug:
             # create interface first, then start networkd
             self.create_iface(ipv6=ipv6)
-            subprocess.check_call(['systemctl', 'start', 'systemd-networkd'])
+            subprocess.check_call(['systemctl', 'start', 'systemd-networkd.service'])
         elif coldplug is not None:
             # start networkd first, then create interface
-            subprocess.check_call(['systemctl', 'start', 'systemd-networkd'])
+            subprocess.check_call(['systemctl', 'start', 'systemd-networkd.service'])
             self.create_iface(ipv6=ipv6)
         else:
             # "None" means test sets up interface by itself
-            subprocess.check_call(['systemctl', 'start', 'systemd-networkd'])
+            subprocess.check_call(['systemctl', 'start', 'systemd-networkd.service'])
 
         try:
             subprocess.check_call([NETWORKD_WAIT_ONLINE, '--interface',
@@ -553,7 +553,7 @@ Address=10.241.3.2/24
 DNS=10.241.3.1
 Domains= ~company ~lab''')
 
-        subprocess.check_call(['systemctl', 'start', 'systemd-networkd'])
+        subprocess.check_call(['systemctl', 'start', 'systemd-networkd.service'])
         subprocess.check_call([NETWORKD_WAIT_ONLINE, '--interface', self.iface,
                                '--interface=testvpnclient', '--timeout=20'])
 
@@ -812,7 +812,7 @@ Address=192.168.42.100
 DNS=192.168.42.1
 Domains= one two three four five six seven eight nine ten''')
 
-        subprocess.check_call(['systemctl', 'start', 'systemd-networkd'])
+        subprocess.check_call(['systemctl', 'start', 'systemd-networkd.service'])
 
         for timeout in range(50):
             with open(RESOLV_CONF) as f:
@@ -844,7 +844,7 @@ Address=192.168.42.100
 DNS=192.168.42.1
 Domains={p}0 {p}1 {p}2 {p}3 {p}4'''.format(p=name_prefix))
 
-        subprocess.check_call(['systemctl', 'start', 'systemd-networkd'])
+        subprocess.check_call(['systemctl', 'start', 'systemd-networkd.service'])
 
         for timeout in range(50):
             with open(RESOLV_CONF) as f:
@@ -874,7 +874,7 @@ DNS=192.168.42.1''')
 [Network]
 DNS=127.0.0.1''')
 
-        subprocess.check_call(['systemctl', 'start', 'systemd-networkd'])
+        subprocess.check_call(['systemctl', 'start', 'systemd-networkd.service'])
 
         for timeout in range(50):
             with open(RESOLV_CONF) as f:
@@ -922,13 +922,13 @@ class MatchClientTest(unittest.TestCase, NetworkdTestingUtilities):
 
     def tearDown(self):
         """Stop networkd."""
-        subprocess.call(['systemctl', 'stop', 'systemd-networkd'])
+        subprocess.call(['systemctl', 'stop', 'systemd-networkd.service', 'systemd-networkd.socket'])
 
     def test_basic_matching(self):
         """Verify the Name= line works throughout this class."""
         self.add_veth_pair('test_if1', 'fake_if2')
         self.write_network('test.network', "[Match]\nName=test_*\n[Network]")
-        subprocess.check_call(['systemctl', 'start', 'systemd-networkd'])
+        subprocess.check_call(['systemctl', 'start', 'systemd-networkd.service'])
         self.assert_link_states(test_if1='managed', fake_if2='unmanaged')
 
     def test_inverted_matching(self):
@@ -943,7 +943,7 @@ class MatchClientTest(unittest.TestCase, NetworkdTestingUtilities):
 MACAddress=%s
 Name=!nonexistent *peer*
 [Network]""" % mac)
-        subprocess.check_call(['systemctl', 'start', 'systemd-networkd'])
+        subprocess.check_call(['systemctl', 'start', 'systemd-networkd.service'])
         self.assert_link_states(test_veth='managed', test_peer='unmanaged')
 
 
@@ -972,7 +972,7 @@ class UnmanagedClientTest(unittest.TestCase, NetworkdTestingUtilities):
 
     def tearDown(self):
         """Stop networkd."""
-        subprocess.call(['systemctl', 'stop', 'systemd-networkd'])
+        subprocess.call(['systemctl', 'stop', 'systemd-networkd.service', 'systemd-networkd.socket'])
 
     def create_iface(self):
         """Create temporary veth pairs for interface matching."""
@@ -981,7 +981,7 @@ class UnmanagedClientTest(unittest.TestCase, NetworkdTestingUtilities):
 
     def test_unmanaged_setting(self):
         """Verify link states with Unmanaged= settings, hot-plug."""
-        subprocess.check_call(['systemctl', 'start', 'systemd-networkd'])
+        subprocess.check_call(['systemctl', 'start', 'systemd-networkd.service'])
         self.create_iface()
         self.assert_link_states(m1def='managed',
                                 m1man='managed',
@@ -991,7 +991,7 @@ class UnmanagedClientTest(unittest.TestCase, NetworkdTestingUtilities):
     def test_unmanaged_setting_coldplug(self):
         """Verify link states with Unmanaged= settings, cold-plug."""
         self.create_iface()
-        subprocess.check_call(['systemctl', 'start', 'systemd-networkd'])
+        subprocess.check_call(['systemctl', 'start', 'systemd-networkd.service'])
         self.assert_link_states(m1def='managed',
                                 m1man='managed',
                                 m1unm='unmanaged',
@@ -1001,7 +1001,7 @@ class UnmanagedClientTest(unittest.TestCase, NetworkdTestingUtilities):
         """Verify link states with a catch-all config, hot-plug."""
         # Don't actually catch ALL interfaces.  It messes up the host.
         self.write_network('all.network', "[Match]\nName=m[01]???\n")
-        subprocess.check_call(['systemctl', 'start', 'systemd-networkd'])
+        subprocess.check_call(['systemctl', 'start', 'systemd-networkd.service'])
         self.create_iface()
         self.assert_link_states(m1def='managed',
                                 m1man='managed',
@@ -1013,7 +1013,7 @@ class UnmanagedClientTest(unittest.TestCase, NetworkdTestingUtilities):
         # Don't actually catch ALL interfaces.  It messes up the host.
         self.write_network('all.network', "[Match]\nName=m[01]???\n")
         self.create_iface()
-        subprocess.check_call(['systemctl', 'start', 'systemd-networkd'])
+        subprocess.check_call(['systemctl', 'start', 'systemd-networkd.service'])
         self.assert_link_states(m1def='managed',
                                 m1man='managed',
                                 m1unm='unmanaged',
