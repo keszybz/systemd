@@ -21,8 +21,12 @@
 #include <fcntl.h>
 #include <linux/loop.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <sys/mount.h>
 #include <sys/swap.h>
+
+/* This needs to be after sys/mount.h. Yay! */
+#include <linux/fs.h>
 
 #include "libudev.h"
 
@@ -448,6 +452,46 @@ static int mount_points_list_umount(MountPoint **head, bool *changed, bool log_e
         return n_failed;
 }
 
+static void freeze_thaw(MountPoint *head) {
+        /* We attempt to freeze and quickly thaw all remaining filesystems
+         * in an attempt to increase chances of consistency after reboot.
+         * Freeze/thaw has the advantage that it'll work even if the filesystem
+         * cannot be remounted read-only. */
+
+        MountPoint *m;
+
+        if (detect_container() > 0)
+                return;
+
+        log_notice("Attempting to freeze/thaw filesystems.");
+
+        LIST_FOREACH(mount_point, m, head) {
+                int fd;
+
+                fd = open(m->path, O_RDONLY|O_DIRECTORY);
+                if (fd < 0) {
+                        if (errno == ENOTDIR)
+                                continue;
+
+                        log_notice_errno(errno, "Cannot open %s, ignoring: %m", m->path);
+                        continue;
+                }
+
+                if (ioctl(fd, FIFREEZE, 0)) {
+                        if (errno == EOPNOTSUPP)
+                                continue;
+
+                        log_notice_errno(errno, "Failed to freeze %s: %m", m->path);
+                        continue;
+                }
+
+                if (ioctl(fd, FITHAW, 0)) {
+                        log_error_errno(errno, "Failed to thaw %s, expect trouble: %m", m->path);
+                        continue;
+                }
+        }
+}
+
 static int swap_points_list_off(MountPoint **head, bool *changed) {
         MountPoint *m, *n;
         int n_failed = 0;
@@ -564,6 +608,9 @@ int umount_all(bool *changed) {
 
         /* umount one more time with logging enabled */
         r = mount_points_list_umount(&mp_list_head, &umount_changed, true);
+
+        if (r > 0)
+                freeze_thaw(mp_list_head);
 
   end:
         mount_points_list_free(&mp_list_head);
