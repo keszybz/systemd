@@ -40,7 +40,6 @@ BuildPackages=
         git
         gnu-efi
         gperf
-        intltool
         iptables-dev
         libacl1-dev
         libaudit-dev

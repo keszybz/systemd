@@ -45,7 +45,6 @@ BuildPackages=
         gnu-efi-libs
         gnutls
         gperf
-        intltool
         iptables
         kmod
         libcap

@@ -46,7 +46,6 @@ BuildPackages=
         gnu-efi-devel
         gnutls-devel
         gperf
-        intltool
         iptables-devel
         kmod-devel
         libacl-devel
