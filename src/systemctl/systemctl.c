@@ -3480,11 +3480,17 @@ static int load_kexec_kernel(void) {
         if (kexec_loaded()) {
                 log_debug("Kexec kernel already loaded.");
                 return 0;
-        }
+        } else
+                log_debug("Kexec kernel not loaded, will try to load.");
 
         r = find_esp_and_warn(arg_esp_path, false, &where, NULL, NULL, NULL, NULL);
-        if (r == -ENOKEY) /* find_esp_and_warn() doesn't warn about this case */
-                return log_error_errno(r, "Cannot find the ESP partition mount point.");
+        if (r == -ENOKEY) {
+                /* find_esp_and_warn() doesn't warn about this case */
+                log_error_errno(r, "Cannot find the ESP partition mount point.");
+                log_notice("Automatic loading of the new kernel is only supported on sd-boot systems.\n"
+                           "Load the kernel first with kexec -l ... and run systemctl kexec again.");
+                return r;
+        }
         if (r < 0) /* But it logs about all these cases, hence don't log here again */
                 return r;
 
