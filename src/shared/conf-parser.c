@@ -314,8 +314,13 @@ int config_parse(const char *unit,
                 char *l, *p, *e;
 
                 r = read_line(f, LONG_LINE_MAX, &buf);
-                if (r == 0)
-                        break;
+                if (r == 0) {
+                        if (continuation) {
+                                p = continuation;
+                                goto parse;
+                        } else
+                                break;
+                }
                 if (r == -ENOBUFS) {
                         if (flags & CONFIG_PARSE_WARN)
                                 log_error_errno(r, "%s:%u: Line too long", filename, line);
@@ -379,6 +384,7 @@ int config_parse(const char *unit,
                         continue;
                 }
 
+        parse:
                 r = parse_line(unit,
                                filename,
                                ++line,

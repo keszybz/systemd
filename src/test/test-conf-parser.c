@@ -273,6 +273,9 @@ static const char* const config_file[] = {
         "setting1=1\n",      /* repeated settings */
 
         "[Section]\n"
+        "setting1=1 \\",     /* a continuation symbol right before EOF */
+
+        "[Section]\n"
         "setting1=1\\\n"     /* normal continuation */
         "2\\\n"
         "3\n",
@@ -341,32 +344,32 @@ static void test_config_parse(unsigned i, const char *s) {
                          CONFIG_PARSE_WARN, NULL);
 
         switch (i) {
-        case 0 ... 3:
+        case 0 ... 4:
                 assert_se(r == 0);
                 assert_se(streq(setting1, "1"));
                 break;
 
-        case 4:
+        case 5:
                 assert_se(r == 0);
                 assert_se(streq(setting1, "1 2 3"));
                 break;
 
-        case 5:
+        case 6:
                 assert_se(r == 0);
                 assert_se(streq(setting1, "1\\\\ \\\\2"));
                 break;
 
-        case 6:
+        case 7:
                 assert_se(r == 0);
                 assert_se(streq(setting1, x1000("ABCD")));
                 break;
 
-        case 7:
+        case 8:
                 assert_se(r == 0);
                 assert_se(streq(setting1, x1000("ABCD") " foobar"));
                 break;
 
-        case 8 ... 9:
+        case 9 ... 10:
                 assert_se(r == -ENOBUFS);
                 assert_se(setting1 == NULL);
                 break;
