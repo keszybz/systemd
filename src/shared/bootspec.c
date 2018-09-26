@@ -24,6 +24,7 @@ void boot_entry_free(BootEntry *entry) {
         assert(entry);
 
         free(entry->filename);
+        free(entry->filepath);
         free(entry->title);
         free(entry->show_title);
         free(entry->version);
@@ -55,6 +56,10 @@ int boot_entry_load(const char *path, BootEntry *entry) {
         b = basename(path);
         tmp.filename = strndup(b, c - b);
         if (!tmp.filename)
+                return log_oom();
+
+        tmp.filepath = strdup(path);
+        if (!tmp.filepath)
                 return log_oom();
 
         f = fopen(path, "re");
@@ -318,7 +323,7 @@ static int boot_entries_select_default(const BootConfig *config) {
         if (config->entry_oneshot)
                 for (i = config->n_entries - 1; i >= 0; i--)
                         if (streq(config->entry_oneshot, config->entries[i].filename)) {
-                                log_debug("Found default: filename \"%s\" is matched by LoaderEntryOneShot",
+                                log_debug("Found default: basename \"%s\" is matched by LoaderEntryOneShot",
                                           config->entries[i].filename);
                                 return i;
                         }
@@ -326,7 +331,7 @@ static int boot_entries_select_default(const BootConfig *config) {
         if (config->entry_default)
                 for (i = config->n_entries - 1; i >= 0; i--)
                         if (streq(config->entry_default, config->entries[i].filename)) {
-                                log_debug("Found default: filename \"%s\" is matched by LoaderEntryDefault",
+                                log_debug("Found default: basename \"%s\" is matched by LoaderEntryDefault",
                                           config->entries[i].filename);
                                 return i;
                         }
@@ -334,7 +339,7 @@ static int boot_entries_select_default(const BootConfig *config) {
         if (config->default_pattern)
                 for (i = config->n_entries - 1; i >= 0; i--)
                         if (fnmatch(config->default_pattern, config->entries[i].filename, FNM_CASEFOLD) == 0) {
-                                log_debug("Found default: filename \"%s\" is matched by pattern \"%s\"",
+                                log_debug("Found default: basename \"%s\" is matched by pattern \"%s\"",
                                           config->entries[i].filename, config->default_pattern);
                                 return i;
                         }
@@ -625,6 +630,7 @@ int find_default_boot_entry(
         }
 
         *e = &config->entries[config->default_entry];
+        log_debug("Found default boot entry in file \"%s\"", (*e)->filepath);
 
         if (esp_where)
                 *esp_where = TAKE_PTR(where);

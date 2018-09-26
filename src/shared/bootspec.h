@@ -5,7 +5,8 @@
 #include <stdlib.h>
 
 typedef struct BootEntry {
-        char *filename;
+        char *filename; /* This is file basename without extension */
+        char *filepath; /* This is full path to the file */
 
         char *title;
         char *show_title;
