@@ -651,18 +651,9 @@ static int add_mounts(void) {
         dev_t devno;
         int r;
 
-        r = get_block_device_harder("/", &devno);
-        if (r < 0)
-                return log_error_errno(r, "Failed to determine block device of root file system: %m");
-        if (r == 0) {
-                r = get_block_device_harder("/usr", &devno);
-                if (r < 0)
-                        return log_error_errno(r, "Failed to determine block device of /usr file system: %m");
-                if (r == 0) {
-                        log_debug("Neither root nor /usr file system are on a (single) block device.");
-                        return 0;
-                }
-        }
+        r = get_root_or_usr_block_dev(&devno);
+        if (r <= 0)
+                return r;
 
         return enumerate_partitions(devno);
 }

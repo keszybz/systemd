@@ -177,3 +177,24 @@ int get_block_device_harder(const char *path, dev_t *ret) {
 
         return 1;
 }
+
+int get_root_or_usr_block_dev(dev_t *ret_devno) {
+        int r;
+        dev_t devno;
+
+        r = get_block_device_harder("/", &devno);
+        if (r < 0)
+                return log_error_errno(r, "Failed to determine block device of root file system: %m");
+        if (r == 0) {
+                r = get_block_device_harder("/usr", &devno);
+                if (r < 0)
+                        return log_error_errno(r, "Failed to determine block device of /usr file system: %m");
+                if (r == 0) {
+                        log_debug("Neither root nor /usr file system are on a (single) block device.");
+                        return 0;
+                }
+        }
+
+        *ret_devno = devno;
+        return 1;
+}
