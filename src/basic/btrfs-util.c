@@ -160,7 +160,7 @@ int btrfs_subvol_make(const char *path) {
         if (r < 0)
                 return r;
 
-        fd = open_parent(path, O_CLOEXEC, 0);
+        fd = path_open_parent(path, O_CLOEXEC, 0);
         if (fd < 0)
                 return fd;
 
@@ -1294,7 +1294,7 @@ int btrfs_subvol_remove(const char *path, BtrfsRemoveFlags flags) {
         if (r < 0)
                 return r;
 
-        fd = open_parent(path, O_CLOEXEC, 0);
+        fd = path_open_parent(path, O_CLOEXEC, 0);
         if (fd < 0)
                 return fd;
 
@@ -1734,7 +1734,7 @@ int btrfs_subvol_snapshot_fd(int old_fd, const char *new_path, BtrfsSnapshotFlag
         if (r < 0)
                 return r;
 
-        new_fd = open_parent(new_path, O_CLOEXEC, 0);
+        new_fd = path_open_parent(new_path, O_CLOEXEC, 0);
         if (new_fd < 0)
                 return new_fd;
 

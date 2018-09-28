@@ -1222,7 +1222,7 @@ int fsync_directory_of_file(int fd) {
         if (!path_is_absolute(path))
                 return -EINVAL;
 
-        dfd = open_parent(path, O_CLOEXEC, 0);
+        dfd = path_open_parent(path, O_CLOEXEC, 0);
         if (dfd < 0)
                 return dfd;
 
@@ -1232,7 +1232,7 @@ int fsync_directory_of_file(int fd) {
         return 0;
 }
 
-int open_parent(const char *path, int flags, mode_t mode) {
+int path_open_parent(const char *path, int flags, mode_t mode) {
         _cleanup_free_ char *parent = NULL;
         int fd;
 

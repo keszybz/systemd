@@ -1124,7 +1124,7 @@ int bus_machine_method_copy(sd_bus_message *message, void *userdata, sd_bus_erro
         t = strdupa(container_path);
         container_dirname = dirname(t);
 
-        hostfd = open_parent(host_path, O_CLOEXEC, 0);
+        hostfd = path_open_parent(host_path, O_CLOEXEC, 0);
         if (hostfd < 0)
                 return sd_bus_error_set_errnof(error, hostfd, "Failed to open host directory %s: %m", host_path);
 

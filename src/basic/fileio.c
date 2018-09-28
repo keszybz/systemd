@@ -1451,7 +1451,7 @@ int open_tmpfile_linkable(const char *target, int flags, char **ret_path) {
          * which case "ret_path" will be returned as NULL. If not possible a the tempoary path name used is returned in
          * "ret_path". Use link_tmpfile() below to rename the result after writing the file in full. */
 
-        fd = open_parent(target, O_TMPFILE|flags, 0640);
+        fd = path_open_parent(target, O_TMPFILE|flags, 0640);
         if (fd >= 0) {
                 *ret_path = NULL;
                 return fd;
