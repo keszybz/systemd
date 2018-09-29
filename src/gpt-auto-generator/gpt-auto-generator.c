@@ -287,7 +287,7 @@ static int add_swap(const char *path) {
         if (r < 0)
                 return log_error_errno(r, "Failed to parse fstab: %m");
         if (r > 0) {
-                log_debug("swap specified in fstab, ignoring.");
+                log_debug("swap specified in fstab, disabling autoconfiguration.");
                 return 0;
         }
 
