@@ -382,6 +382,7 @@ static int parse_argv(int argc, char *argv[]) {
         enum {
                 ARG_VERSION = 0x100,
                 ARG_NO_PAGER,
+                ARG_BROWSE_AND_FOLLOW,
                 ARG_NO_FULL,
                 ARG_NO_TAIL,
                 ARG_NEW_ID128,
@@ -423,6 +424,8 @@ static int parse_argv(int argc, char *argv[]) {
                 { "no-pager",       no_argument,       NULL, ARG_NO_PAGER       },
                 { "pager-end",      no_argument,       NULL, 'e'                },
                 { "follow",         no_argument,       NULL, 'f'                },
+                { "browse-and-follow",
+                                    no_argument,       NULL, ARG_BROWSE_AND_FOLLOW  },
                 { "force",          no_argument,       NULL, ARG_FORCE          },
                 { "output",         required_argument, NULL, 'o'                },
                 { "all",            no_argument,       NULL, 'a'                },
@@ -509,6 +512,12 @@ static int parse_argv(int argc, char *argv[]) {
 
                 case 'f':
                         arg_follow = true;
+                        arg_pager_flags |= PAGER_DISABLE;
+                        break;
+
+                case ARG_BROWSE_AND_FOLLOW:
+                        arg_follow = true;
+                        arg_no_tail = true;
                         break;
 
                 case 'o':
@@ -2522,8 +2531,7 @@ int main(int argc, char *argv[]) {
         if (r == 0)
                 need_seek = true;
 
-        if (!arg_follow)
-                (void) pager_open(arg_pager_flags);
+        (void) pager_open(arg_pager_flags);
 
         if (!arg_quiet && (arg_lines != 0 || arg_follow)) {
                 usec_t start, end;
