@@ -180,6 +180,7 @@ struct ExecContext {
         int cpu_sched_priority;
 
         CPUSet cpu_set;
+        bool cpu_affinity_numa;
         NUMAPolicy numa_policy;
 
         ExecInput std_input;

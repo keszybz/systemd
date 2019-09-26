@@ -1265,6 +1265,7 @@ int config_parse_numa_mask(const char *unit,
                            void *userdata) {
         int r;
         NUMAPolicy *p = data;
+        ExecContext *c;
 
         assert(filename);
         assert(lvalue);
@@ -1275,6 +1276,15 @@ int config_parse_numa_mask(const char *unit,
         if (r < 0) {
                 log_syntax(unit, LOG_ERR, filename, line, r, "Failed to parse NUMA node mask, ignoring: %s", rvalue);
                 return 0;
+        }
+
+        c = container_of(p, ExecContext, numa_policy);
+        if (c->cpu_affinity_numa) {
+                r = numa_to_cpu_set(p, &c->cpu_set);
+                if (r < 0) {
+                        log_syntax(unit, LOG_ERR, filename, line, r, "Failed to derive CPU affinity mask from NUMA node mask, ignoring");
+                        return 0;
+                }
         }
 
         return r;
@@ -1337,6 +1347,22 @@ int config_parse_exec_cpu_affinity(const char *unit,
         assert(lvalue);
         assert(rvalue);
         assert(data);
+
+        if (streq(rvalue, "NUMA")) {
+                if (c->numa_policy.nodes.set) {
+                        int r;
+
+                        r = numa_to_cpu_set(&c->numa_policy, &c->cpu_set);
+                        if (r < 0)
+                                log_syntax(unit, LOG_ERR, filename, line, r, "Failed to derive CPU affinity mask from NUMA node mask, ignoring");
+                        return 0;
+                } else
+                        /* We haven't seen NUMAMask= yet, let's remember we need to set CPUAffinity= once we have parsed it */
+                        c->cpu_affinity_numa = true;
+
+
+        } else if (isempty(rvalue))
+                c->cpu_affinity_numa = false;
 
         return parse_cpu_set_extend(rvalue, &c->cpu_set, true, unit, filename, line, lvalue);
 }

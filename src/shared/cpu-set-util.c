@@ -11,6 +11,7 @@
 #include "errno-util.h"
 #include "extract-word.h"
 #include "fd-util.h"
+#include "fileio.h"
 #include "log.h"
 #include "macro.h"
 #include "memory-util.h"
@@ -367,6 +368,45 @@ int apply_numa_policy(const NUMAPolicy *policy) {
         r = set_mempolicy(numa_policy_get_type(policy), nodes, maxnode);
         if (r < 0)
                 return -errno;
+
+        return 0;
+}
+
+int numa_to_cpu_set(const NUMAPolicy *policy, CPUSet *set) {
+        int r;
+        size_t i;
+        _cleanup_(cpu_set_reset) CPUSet s = {};
+
+        assert(policy);
+        assert(set);
+
+        for (i = 0; (size_t) i < policy->nodes.allocated * 8; i++) {
+                _cleanup_free_ char *p = NULL, *l = NULL;
+                _cleanup_(cpu_set_reset) CPUSet part = {};
+
+                if (!CPU_ISSET_S(i, policy->nodes.allocated, policy->nodes.set))
+                        continue;
+
+                r = asprintf(&p, "/sys/devices/system/node/node%lu/cpulist", (unsigned long) i);
+                if (r < 0)
+                        return -ENOMEM;
+
+                r = read_one_line_file(p, &l);
+                if (r < 0)
+                        return r;
+
+                r = parse_cpu_set(l, &part);
+                if (r < 0)
+                        return r;
+
+                r = cpu_set_add_all(&s, &part);
+                if (r < 0)
+                        return r;
+        }
+
+        r = cpu_set_add_all(set, &s);
+        if (r < 0)
+                return r;
 
         return 0;
 }
