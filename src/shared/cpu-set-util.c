@@ -18,6 +18,7 @@
 #include "missing_syscall.h"
 #include "parse-util.h"
 #include "stat-util.h"
+#include "stdio-util.h"
 #include "string-util.h"
 #include "string-table.h"
 #include "strv.h"
@@ -27,6 +28,14 @@ char* cpu_set_to_string(const CPUSet *a) {
         _cleanup_free_ char *str = NULL;
         size_t allocated = 0, len = 0;
         int i, r;
+
+        if (a->include_numa_mask) {
+                str = strdup("numa");
+                if (!str)
+                        return NULL;
+                len = 4;
+                allocated = 5;
+        }
 
         for (i = 0; (size_t) i < a->allocated * 8; i++) {
                 if (!CPU_ISSET_S(i, a->allocated, a->set))
@@ -49,6 +58,14 @@ char *cpu_set_to_range_string(const CPUSet *set) {
         size_t allocated = 0, len = 0;
         bool in_range = false;
         int r;
+
+        if (set->include_numa_mask) {
+                str = strdup("numa");
+                if (!str)
+                        return NULL;
+                len = 4;
+                allocated = 5;
+        }
 
         for (unsigned i = 0; i < set->allocated * 8; i++)
                 if (CPU_ISSET_S(i, set->allocated, set->set)) {
@@ -134,6 +151,8 @@ int cpu_set_add_all(CPUSet *a, const CPUSet *b) {
                                 return r;
                 }
 
+        a->include_numa_mask = a->include_numa_mask || b->include_numa_mask;
+
         return 0;
 }
 
@@ -163,6 +182,11 @@ int parse_cpu_set_full(
                         return warn ? log_syntax(unit, LOG_ERR, filename, line, r, "Invalid value for %s: %s", lvalue, rvalue) : r;
                 if (r == 0)
                         break;
+
+                if (STR_IN_SET(word, "numa", "NUMA")) {
+                        c.include_numa_mask = true;
+                        continue;
+                }
 
                 r = parse_range(word, &cpu_lower, &cpu_upper);
                 if (r < 0)
@@ -210,13 +234,13 @@ int parse_cpu_set_extend(
         if (r < 0)
                 return r;
 
-        if (!cpuset.set) {
+        if (cpu_set_empty(&cpuset)) {
                 /* An empty assignment resets the CPU list */
                 cpu_set_reset(old);
                 return 0;
         }
 
-        if (!old->set) {
+        if (cpu_set_empty(old)) {
                 *old = cpuset;
                 cpuset = (CPUSet) {};
                 return 0;
@@ -264,6 +288,9 @@ int cpu_set_to_dbus(const CPUSet *set, uint8_t **ret, size_t *allocated) {
 
         assert(set);
         assert(ret);
+
+        if (set->include_numa_mask)
+                return -EUCLEAN;
 
         out = new0(uint8_t, set->allocated);
         if (!out)
@@ -372,24 +399,25 @@ int apply_numa_policy(const NUMAPolicy *policy) {
         return 0;
 }
 
-int numa_to_cpu_set(const NUMAPolicy *policy, CPUSet *set) {
-        int r;
-        size_t i;
-        _cleanup_(cpu_set_reset) CPUSet s = {};
-
-        assert(policy);
+int cpu_set_apply_numa(CPUSet *set, const NUMAPolicy *policy) {
         assert(set);
+        assert(policy);
 
-        for (i = 0; (size_t) i < policy->nodes.allocated * 8; i++) {
-                _cleanup_free_ char *p = NULL, *l = NULL;
+        if (!set->include_numa_mask)
+                return 0;
+
+        _cleanup_(cpu_set_reset) CPUSet s = {};
+        int r;
+
+        for (size_t i = 0; (size_t) i < policy->nodes.allocated * 8; i++) {
+                char p[STRLEN("/sys/devices/system/node/node/cpulist") + DECIMAL_STR_MAX(size_t)];
+                _cleanup_free_ char *l = NULL;
                 _cleanup_(cpu_set_reset) CPUSet part = {};
 
                 if (!CPU_ISSET_S(i, policy->nodes.allocated, policy->nodes.set))
                         continue;
 
-                r = asprintf(&p, "/sys/devices/system/node/node%lu/cpulist", (unsigned long) i);
-                if (r < 0)
-                        return -ENOMEM;
+                xsprintf(p, "/sys/devices/system/node/node%zu/cpulist", i);
 
                 r = read_one_line_file(p, &l);
                 if (r < 0)
@@ -408,6 +436,7 @@ int numa_to_cpu_set(const NUMAPolicy *policy, CPUSet *set) {
         if (r < 0)
                 return r;
 
+        set->include_numa_mask = false;
         return 0;
 }
 

@@ -177,6 +177,49 @@ static void test_parse_cpu_set(void) {
         str = mfree(str);
         cpu_set_reset(&c);
 
+        /* With "numa" */
+        assert_se(parse_cpu_set_full("numa", &c, true, NULL, "fake", 1, "CPUAffinity") >= 0);
+        assert_se(!cpu_set_empty(&c));
+        assert_se(c.include_numa_mask);
+        assert_se(!c.set);
+        assert_se(str = cpu_set_to_string(&c));
+        log_info("cpu_set_to_string: %s", str);
+        assert_se(streq(str, "numa"));
+        str = mfree(str);
+        assert_se(str = cpu_set_to_range_string(&c));
+        log_info("cpu_set_to_range_string: %s", str);
+        assert_se(streq(str, "numa"));
+        str = mfree(str);
+        cpu_set_reset(&c);
+
+        assert_se(parse_cpu_set_full("numa numa \"numa\" \'numa\'", &c, true, NULL, "fake", 1, "CPUAffinity") >= 0);
+        assert_se(!cpu_set_empty(&c));
+        assert_se(c.include_numa_mask);
+        assert_se(!c.set);
+        assert_se(str = cpu_set_to_string(&c));
+        log_info("cpu_set_to_string: %s", str);
+        assert_se(streq(str, "numa"));
+        str = mfree(str);
+        assert_se(str = cpu_set_to_range_string(&c));
+        log_info("cpu_set_to_range_string: %s", str);
+        assert_se(streq(str, "numa"));
+        str = mfree(str);
+        cpu_set_reset(&c);
+
+        assert_se(parse_cpu_set_full("numa 1-3 numa 3 8", &c, true, NULL, "fake", 1, "CPUAffinity") >= 0);
+        assert_se(!cpu_set_empty(&c));
+        assert_se(c.include_numa_mask);
+        assert_se(c.set);
+        assert_se(str = cpu_set_to_string(&c));
+        log_info("cpu_set_to_string: %s", str);
+        assert_se(streq(str, "numa 1 2 3 8"));
+        str = mfree(str);
+        assert_se(str = cpu_set_to_range_string(&c));
+        log_info("cpu_set_to_range_string: %s", str);
+        assert_se(streq(str, "numa 1-3 8"));
+        str = mfree(str);
+        cpu_set_reset(&c);
+
         /* Garbage */
         assert_se(parse_cpu_set_full("0 1 2 3 garbage", &c, true, NULL, "fake", 1, "CPUAffinity") == -EINVAL);
         assert_se(!c.set);

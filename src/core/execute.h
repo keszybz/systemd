@@ -180,7 +180,6 @@ struct ExecContext {
         int cpu_sched_priority;
 
         CPUSet cpu_set;
-        bool cpu_affinity_numa;
         NUMAPolicy numa_policy;
 
         ExecInput std_input;
@@ -386,6 +385,8 @@ void exec_context_revert_tty(ExecContext *c);
 
 int exec_context_get_clean_directories(ExecContext *c, char **prefix, ExecCleanMask mask, char ***ret);
 int exec_context_get_clean_mask(ExecContext *c, ExecCleanMask *ret);
+
+int exec_context_resolve_cpusets(ExecContext *c);
 
 void exec_status_start(ExecStatus *s, pid_t pid);
 void exec_status_exit(ExecStatus *s, const ExecContext *context, pid_t pid, int code, int status);

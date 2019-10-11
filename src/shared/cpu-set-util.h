@@ -10,6 +10,7 @@
 typedef struct CPUSet {
         cpu_set_t *set;
         size_t allocated; /* in bytes */
+        bool include_numa_mask;
 } CPUSet;
 
 static inline void cpu_set_reset(CPUSet *a) {
@@ -17,6 +18,10 @@ static inline void cpu_set_reset(CPUSet *a) {
         if (a->set)
                 CPU_FREE(a->set);
         *a = (CPUSet) {};
+}
+
+static inline bool cpu_set_empty(const CPUSet *a) {
+        return !a->set && !a->include_numa_mask;
 }
 
 int cpu_set_add_all(CPUSet *a, const CPUSet *b);
@@ -73,7 +78,7 @@ static inline void numa_policy_reset(NUMAPolicy *p) {
 }
 
 int apply_numa_policy(const NUMAPolicy *policy);
-int numa_to_cpu_set(const NUMAPolicy *policy, CPUSet *set);
+int cpu_set_apply_numa(CPUSet *set, const NUMAPolicy *policy);
 
 const char* mpol_to_string(int i) _const_;
 int mpol_from_string(const char *s) _pure_;

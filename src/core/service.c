@@ -762,6 +762,10 @@ static int service_load(Unit *u) {
         if (r < 0)
                 return r;
 
+        r = exec_context_resolve_cpusets(&s->exec_context);
+        if (r < 0)
+                return r;
+
         if (u->load_state != UNIT_LOADED)
                 return 0;
 

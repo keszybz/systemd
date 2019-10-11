@@ -644,6 +644,11 @@ static int mount_load(Unit *u) {
                 return r;
         if (q < 0)
                 return q;
+
+        r = exec_context_resolve_cpusets(&m->exec_context);
+        if (r < 0)
+                return r;
+
         if (u->load_state != UNIT_LOADED)
                 return 0;
 

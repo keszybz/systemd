@@ -4860,6 +4860,10 @@ int exec_context_get_clean_mask(ExecContext *c, ExecCleanMask *ret) {
         return 0;
 }
 
+int exec_context_resolve_cpusets(ExecContext *c) {
+        return cpu_set_apply_numa(&c->cpu_set, &c->numa_policy);
+}
+
 void exec_status_start(ExecStatus *s, pid_t pid) {
         assert(s);
 

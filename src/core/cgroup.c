@@ -973,6 +973,8 @@ static uint64_t cgroup_cpu_weight_to_shares(uint64_t weight) {
 static void cgroup_apply_unified_cpuset(Unit *u, const CPUSet *cpus, const char *name) {
         _cleanup_free_ char *buf = NULL;
 
+        assert(!cpus->include_numa_mask);
+
         buf = cpu_set_to_range_string(cpus);
         if (!buf)
             return;
