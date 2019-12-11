@@ -3104,71 +3104,68 @@ run_target(
 ############################################################
 watchdog_opt = service_watchdog == '' ? 'disabled' : service_watchdog
 
-status = [
-        '@0@ @1@'.format(meson.project_name(), meson.project_version()),
-
-        'split /usr:                        @0@'.format(split_usr),
-        'split bin-sbin:                    @0@'.format(split_bin),
-        'prefix directory:                  @0@'.format(prefixdir),
-        'rootprefix directory:              @0@'.format(rootprefixdir),
-        'sysconf directory:                 @0@'.format(sysconfdir),
-        'include directory:                 @0@'.format(includedir),
-        'lib directory:                     @0@'.format(libdir),
-        'rootlib directory:                 @0@'.format(rootlibdir),
-        'SysV init scripts:                 @0@'.format(sysvinit_path),
-        'SysV rc?.d directories:            @0@'.format(sysvrcnd_path),
-        'PAM modules directory:             @0@'.format(pamlibdir),
-        'PAM configuration directory:       @0@'.format(pamconfdir),
-        'RPM macros directory:              @0@'.format(rpmmacrosdir),
-        'modprobe.d directory:              @0@'.format(modprobedir),
-        'D-Bus policy directory:            @0@'.format(dbuspolicydir),
-        'D-Bus session directory:           @0@'.format(dbussessionservicedir),
-        'D-Bus system directory:            @0@'.format(dbussystemservicedir),
-        'bash completions directory:        @0@'.format(bashcompletiondir),
-        'zsh completions directory:         @0@'.format(zshcompletiondir),
-        'extra start script:                @0@'.format(get_option('rc-local')),
-        'debug shell:                       @0@ @ @1@'.format(get_option('debug-shell'),
-                                                              get_option('debug-tty')),
-        'TTY GID:                           @0@'.format(tty_gid),
-        'users GID:                         @0@'.format(substs.get('USERS_GID')),
-        'maximum system UID:                @0@'.format(system_uid_max),
-        'maximum system GID:                @0@'.format(system_gid_max),
-        'minimum dynamic UID:               @0@'.format(dynamic_uid_min),
-        'maximum dynamic UID:               @0@'.format(dynamic_uid_max),
-        'minimum container UID base:        @0@'.format(container_uid_base_min),
-        'maximum container UID base:        @0@'.format(container_uid_base_max),
-        '/dev/kvm access mode:              @0@'.format(get_option('dev-kvm-mode')),
-        'render group access mode:          @0@'.format(get_option('group-render-mode')),
-        'certificate root directory:        @0@'.format(get_option('certificate-root')),
-        'support URL:                       @0@'.format(support_url),
-        'nobody user name:                  @0@'.format(nobody_user),
-        'nobody group name:                 @0@'.format(nobody_group),
-        'fallback hostname:                 @0@'.format(get_option('fallback-hostname')),
-        'symbolic gateway hostnames:        @0@'.format(', '.join(gateway_hostnames)),
-
-        'default DNSSEC mode:               @0@'.format(default_dnssec),
-        'default DNS-over-TLS mode:         @0@'.format(default_dns_over_tls),
-        'default cgroup hierarchy:          @0@'.format(default_hierarchy),
-        'default net.naming-scheme setting: @0@'.format(default_net_naming_scheme),
-        'default KillUserProcesses setting: @0@'.format(kill_user_processes),
-        'default locale:                    @0@'.format(default_locale),
-        'default user $PATH:                @0@'.format(default_user_path_display),
-        'systemd service watchdog:          @0@'.format(watchdog_opt)]
-
-alt_dns_servers = '\n                                            '.join(dns_servers.split(' '))
-alt_ntp_servers = '\n                                            '.join(ntp_servers.split(' '))
-status += [
-        'default DNS servers:               @0@'.format(alt_dns_servers),
-        'default NTP servers:               @0@'.format(alt_ntp_servers)]
+alt_dns_servers = dns_servers.split(' ')
+alt_ntp_servers = ntp_servers.split(' ')
 
 alt_time_epoch = run_command('date', '-Is', '-u', '-d',
                              '@@0@'.format(time_epoch)).stdout().strip()
-status += [
-        'time epoch:                        @0@ (@1@)'.format(time_epoch, alt_time_epoch)]
 
-status += [
-        'static libsystemd:                 @0@'.format(static_libsystemd),
-        'static libudev:                    @0@'.format(static_libudev)]
+summary('status',
+        {meson.project_name() : meson.project_version(),
+        'split /usr' : split_usr,
+        'split bin-sbin' : split_bin,
+        'prefix directory' : prefixdir,
+        'rootprefix directory' : rootprefixdir,
+        'sysconf directory' : sysconfdir,
+        'include directory' : includedir,
+        'lib directory' : libdir,
+        'rootlib directory' : rootlibdir,
+        'SysV init scripts' : sysvinit_path,
+        'SysV rc?.d directories' : sysvrcnd_path,
+        'PAM modules directory' : pamlibdir,
+        'PAM configuration directory' : pamconfdir,
+        'RPM macros directory' : rpmmacrosdir,
+        'modprobe.d directory' : modprobedir,
+        'D-Bus policy directory' : dbuspolicydir,
+        'D-Bus session directory' : dbussessionservicedir,
+        'D-Bus system directory' : dbussystemservicedir,
+        'bash completions directory' : bashcompletiondir,
+        'zsh completions directory' : zshcompletiondir,
+        'extra start script' : get_option('rc-local'),
+        'debug shell' : '@0@ @ @1@'.format(get_option('debug-shell'),
+                                           get_option('debug-tty')),
+        'TTY GID' : tty_gid,
+        'users GID' : substs.get('USERS_GID'),
+        'maximum system UID' : system_uid_max,
+        'maximum system GID' : system_gid_max,
+        'minimum dynamic UID' : dynamic_uid_min,
+        'maximum dynamic UID' : dynamic_uid_max,
+        'minimum container UID base' : container_uid_base_min,
+        'maximum container UID base' : container_uid_base_max,
+        '/dev/kvm access mode' : get_option('dev-kvm-mode'),
+        'render group access mode' : get_option('group-render-mode'),
+        'certificate root directory' : get_option('certificate-root'),
+        'support URL' : support_url,
+        'nobody user name' : nobody_user,
+        'nobody group name' : nobody_group,
+        'fallback hostname' : get_option('fallback-hostname'),
+        'symbolic gateway hostnames' : ', '.join(gateway_hostnames),
+
+        'default DNSSEC mode' : default_dnssec,
+        'default DNS-over-TLS mode' : default_dns_over_tls,
+        'default cgroup hierarchy' : default_hierarchy,
+        'default net.naming-scheme setting' : default_net_naming_scheme,
+        'default KillUserProcesses setting' : kill_user_processes,
+        'default locale' : default_locale,
+        'default user $PATH' : default_user_path_display,
+        'systemd service watchdog' : watchdog_opt,
+
+        'default DNS servers' : alt_dns_servers,
+        'default NTP servers' : alt_ntp_servers,
+        'time epoch' : '@0@ (@1@)'.format(time_epoch, alt_time_epoch),
+        'static libsystemd' : static_libsystemd,
+        'static libudev' : static_libudev,
+        })
 
 # TODO:
 # CFLAGS:   ${OUR_CFLAGS} ${CFLAGS}
@@ -3176,16 +3173,17 @@ status += [
 # LDFLAGS:  ${OUR_LDFLAGS} ${LDFLAGS}
 
 if conf.get('ENABLE_EFI') == 1
-        status += 'efi arch:                          @0@'.format(efi_arch)
+        status =  {'efi arch' : efi_arch}
 
         if have_gnu_efi
-                status += [
-                        'EFI machine type:                  @0@'.format(EFI_MACHINE_TYPE_NAME),
-                        'EFI CC                             @0@'.format(' '.join(efi_cc)),
-                        'EFI lib directory:                 @0@'.format(efi_libdir),
-                        'EFI lds directory:                 @0@'.format(efi_ldsdir),
-                        'EFI include directory:             @0@'.format(efi_incdir)]
+                status += {
+                        'EFI machine type' : ' '.join(efi_cc),
+                        'EFI lib directory' : efi_libdir,
+                        'EFI lds directory' : efi_ldsdir,
+                        'EFI include directory' : efi_incdir,
+                }
         endif
+        summary('EFI', status)
 endif
 
 found = []
@@ -3289,13 +3287,10 @@ foreach tuple : [
         endif
 endforeach
 
-status += [
-        '',
-        'enabled features: @0@'.format(', '.join(found)),
-        '',
-        'disabled features: @0@'.format(', '.join(missing)),
-        '']
-message('\n         '.join(status))
+summary('enablement status', {
+                'enabled features' : ', '.join(found),
+                'disabled features' : ', '.join(missing),
+        })
 
 if rootprefixdir != rootprefix_default
         warning('\n' +
