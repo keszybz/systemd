@@ -1006,11 +1006,17 @@ static int apply_mount(
 
         assert(what);
 
-        if (mount(what, mount_entry_path(m), NULL, MS_BIND|(rbind ? MS_REC : 0), NULL) < 0) {
+        unsigned long flags = MS_BIND|(rbind ? MS_REC : 0);
+        if (mount(what, mount_entry_path(m), NULL, flags, NULL) < 0) {
                 bool try_again = false;
                 r = -errno;
 
-                if (r == -ENOENT && make) {
+                if (r == -EROFS && IN_SET(m->mode, READWRITE, READWRITE_IMPLICIT)) {
+                        log_notice_errno(errno, "Failed to mount '%s' r/w, retrying read-only.", mount_entry_path(m));
+                        flags |= MS_RDONLY;
+                        try_again = true;
+
+                } else if (r == -ENOENT && make) {
                         struct stat st;
 
                         /* Hmm, either the source or the destination are missing. Let's see if we can create the destination, then try again */
@@ -1035,7 +1041,7 @@ static int apply_mount(
                 }
 
                 if (try_again) {
-                        if (mount(what, mount_entry_path(m), NULL, MS_BIND|(rbind ? MS_REC : 0), NULL) < 0)
+                        if (mount(what, mount_entry_path(m), NULL, flags, NULL) < 0)
                                 r = -errno;
                         else
                                 r = 0;
