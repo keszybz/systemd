@@ -3,6 +3,7 @@
 
 option('version-tag', type : 'string',
        description : 'override the git version string')
+# test
 
 option('mode', type : 'combo', choices : ['developer', 'release'],
        description : 'autoenable features suitable for systemd development/release builds')
