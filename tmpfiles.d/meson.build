@@ -51,6 +51,5 @@ foreach pair : in_files
 endforeach
 
 if enable_tmpfiles and install_sysconfdir
-        meson.add_install_script(
-                'sh', '-c', mkdir_p.format(sysconfdir / 'tmpfiles.d'))
+        meson.add_install_script(sh, '-c', mkdir_p.format(sysconfdir / 'tmpfiles.d'))
 endif

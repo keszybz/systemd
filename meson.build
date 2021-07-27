@@ -595,7 +595,7 @@ git = find_program('git', required : false)
 env = find_program('env')
 perl = find_program('perl', required : false)
 rsync = find_program('rsync', required : false)
-meson_make_symlink = project_source_root + '/tools/meson-make-symlink.sh'
+meson_make_symlink = find_program('tools/meson-make-symlink.sh')
 test_efi_create_disk_sh = find_program('test/test-efi-create-disk.sh')
 
 mkdir_p = 'mkdir -p $DESTDIR/@0@'
@@ -1948,7 +1948,7 @@ foreach tuple : [['myhostname', 'ENABLE_NSS_MYHOSTNAME'],
 
                 # We cannot use shared_module because it does not support version suffix.
                 # Unfortunately shared_library insists on creating the symlink…
-                meson.add_install_script('sh', '-c',
+                meson.add_install_script(sh, '-c',
                                          'rm $DESTDIR@0@/libnss_@1@.so'
                                          .format(rootlibdir, module))
 
@@ -2885,11 +2885,9 @@ if conf.get('ENABLE_BINFMT') == 1
                 install : true,
                 install_dir : rootlibexecdir)
 
-        meson.add_install_script('sh', '-c',
-                                 mkdir_p.format(binfmtdir))
+        meson.add_install_script(sh, '-c', mkdir_p.format(binfmtdir))
         if install_sysconfdir
-                meson.add_install_script('sh', '-c',
-                                         mkdir_p.format(sysconfdir / 'binfmt.d'))
+                meson.add_install_script(sh, '-c', mkdir_p.format(sysconfdir / 'binfmt.d'))
         endif
 endif
 
@@ -3364,11 +3362,9 @@ if conf.get('HAVE_KMOD') == 1
                 install : true,
                 install_dir : rootlibexecdir)
 
-        meson.add_install_script('sh', '-c',
-                                 mkdir_p.format(modulesloaddir))
+        meson.add_install_script(sh, '-c', mkdir_p.format(modulesloaddir))
         if install_sysconfdir
-                meson.add_install_script('sh', '-c',
-                                         mkdir_p.format(sysconfdir / 'modules-load.d'))
+                meson.add_install_script(sh, '-c', mkdir_p.format(sysconfdir / 'modules-load.d'))
         endif
 endif
 
@@ -3655,8 +3651,8 @@ install_data('LICENSE.GPL2',
 install_subdir('LICENSES',
                install_dir : docdir)
 
-meson.add_install_script('sh', '-c', mkdir_p.format(systemdstatedir))
-meson.add_install_script('sh', '-c', 'touch $DESTDIR@0@'.format(prefixdir))
+meson.add_install_script(sh, '-c', mkdir_p.format(systemdstatedir))
+meson.add_install_script(sh, '-c', 'touch $DESTDIR@0@'.format(prefixdir))
 
 ############################################################
 

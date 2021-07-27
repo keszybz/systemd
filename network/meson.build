@@ -11,8 +11,7 @@ if conf.get('ENABLE_NETWORKD') == 1
                      install_dir : networkdir)
 
         if install_sysconfdir
-                meson.add_install_script('sh', '-c',
-                                         mkdir_p.format(sysconfdir / 'systemd/network'))
+                meson.add_install_script(sh, '-c', mkdir_p.format(sysconfdir / 'systemd/network'))
         endif
 endif
 

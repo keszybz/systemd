@@ -22,6 +22,5 @@ custom_target(
         install_dir : sysctldir)
 
 if install_sysconfdir
-        meson.add_install_script('sh', '-c',
-                                 mkdir_p.format(sysconfdir / 'sysctl.d'))
+        meson.add_install_script(sh, '-c', mkdir_p.format(sysconfdir / 'sysctl.d'))
 endif
