@@ -1576,13 +1576,40 @@ int setpriority_closest(int priority) {
 }
 
 bool invoked_as(char *argv[], const char *token) {
-        if (!argv || isempty(argv[0]))
+        static char cache[COMM_MAX_LEN+1] = "";
+        const char *e;
+
+        if (!isempty(cache))
+                e = cache;
+        else {
+                e = getenv("SYSTEMD_INVOKED_AS");
+
+                if (e) {
+                        e = last_path_component(e);
+                        if (strlen(e) > sizeof(cache)-1)
+                                /* Ignore values which don't fit in the cache */
+                                e = NULL;
+                }
+
+                if (e) {
+                        strncpy(cache, e, sizeof(cache));
+                        e = cache;
+                }
+
+                unsetenv("SYSTEMD_INVOKED_AS");
+                /* The original value of 'e' is not valid beyond this point. */
+        }
+
+        if (!e && argv)
+                e = argv[0];
+
+        if (isempty(e))
                 return false;
 
         if (isempty(token))
                 return false;
 
-        return strstr(last_path_component(argv[0]), token);
+        return strstr(last_path_component(e), token);
 }
 
 bool invoked_by_systemd(void) {

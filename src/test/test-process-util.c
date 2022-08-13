@@ -896,6 +896,19 @@ TEST(set_oom_score_adjust) {
         assert_se(b == a);
 }
 
+TEST(invoked_as) {
+        assert_se(!invoked_as(NULL, "foobar"));
+        assert_se(!invoked_as(NULL, "barbar"));
+
+        assert_se(setenv("SYSTEMD_INVOKED_AS", "foobar", 1) == 0);
+
+        assert_se( invoked_as(NULL, "foobar"));
+        assert_se(!invoked_as(NULL, "barbar"));
+        assert_se( invoked_as(NULL, "foobar"));
+        assert_se( invoked_as(STRV_MAKE("barbar"), "foobar"));
+        assert_se(!invoked_as(STRV_MAKE("barbar"), "barbar"));
+}
+
 static int intro(void) {
         log_show_color(true);
         return EXIT_SUCCESS;
