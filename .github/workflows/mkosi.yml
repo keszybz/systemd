@@ -78,7 +78,7 @@ jobs:
             release: 8-stream
 
     steps:
-    - uses: actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
     - uses: systemd/mkosi@ab2aff830096e681da1950a7d29f277caa89516c
 
     - name: Configure
