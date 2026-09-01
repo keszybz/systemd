@@ -86,7 +86,7 @@ jobs:
             release: "10"
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
       - uses: systemd/mkosi@60ed8c964f8d98aa4b325f381c4b3bc6de91a0b7
