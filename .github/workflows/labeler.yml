@@ -20,7 +20,14 @@ permissions:
 
 jobs:
   triage:
-    if: github.repository == 'systemd/systemd'
+    # issue_comment cannot be filtered by the trigger, so skip the whole job
+    # here for comments that are not a command, instead of starting a runner
+    # that then skips every step.
+    if: >-
+      github.repository == 'systemd/systemd' &&
+      (startsWith(github.event_name, 'pull_request') ||
+       (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
+        startsWith(github.event.comment.body, '/please-review')))
     runs-on: ubuntu-24.04
     permissions:
       pull-requests: write
@@ -229,7 +236,7 @@ jobs:
 
     - name: Add please-review label on command in issue comment
       uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
-      if: github.event_name == 'issue_comment' && github.event.issue.pull_request && startsWith(github.event.comment.body, '/please-review')
+      if: github.event_name == 'issue_comment'
       with:
         script: |
           await github.rest.issues.addLabels({
